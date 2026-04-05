@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar - Habit Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        green: { 500: '#10B981', 100: '#D1FAE5' },
+                        blue: { 500: '#5BA4C9', 100: '#E0F2FE' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="pb-24 bg-gray-50">
+
+    <!-- Header -->
+    <header class="px-6 pt-8 pb-4 flex justify-between items-center animate-slide-up">
+        <h1 class="text-2xl font-bold text-gray-900">Calendar</h1>
+        <button class="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 transition">
+            <i class="fa-solid fa-ellipsis-vertical"></i>
+        </button>
+    </header>
+
+    <!-- Month Navigation -->
+    <section class="px-6 flex justify-between items-center mt-2 animate-slide-up delay-100">
+        <button class="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 transition">
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <h2 class="text-lg font-bold text-gray-900">March 2026</h2>
+        <button class="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 transition">
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>
+    </section>
+
+    <!-- Calendar Grid -->
+    <section class="px-6 mt-6 animate-slide-up delay-200">
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+            <!-- Days of week -->
+            <div class="grid grid-cols-7 gap-2 mb-4 text-center">
+                <span class="text-xs font-bold text-gray-400">S</span>
+                <span class="text-xs font-bold text-gray-400">M</span>
+                <span class="text-xs font-bold text-gray-400">T</span>
+                <span class="text-xs font-bold text-gray-400">W</span>
+                <span class="text-xs font-bold text-gray-400">T</span>
+                <span class="text-xs font-bold text-gray-400">F</span>
+                <span class="text-xs font-bold text-gray-400">S</span>
+            </div>
+            
+            <!-- Dates -->
+            <div class="grid grid-cols-7 gap-y-4 gap-x-2 text-center" id="calendar-grid">
+                <!-- Javascript will populate this -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Selected Date Summary -->
+    <section class="px-6 mt-6 animate-slide-up delay-300">
+        <h3 class="text-lg font-bold text-gray-900 mb-4" id="selected-date-text">March 11, 2026</h3>
+        
+        <div class="flex flex-col gap-3">
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-lg theme-icon-bg">
+                        <i class="fa-solid fa-book-open"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-sm text-gray-900">Reading Book</h4>
+                        <p class="text-xs text-green-600 font-medium theme-text">Completed</p>
+                    </div>
+                </div>
+                <i class="fa-solid fa-circle-check text-green-500 text-xl theme-text"></i>
+            </div>
+            
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between opacity-60">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-dumbbell"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-sm text-gray-900">Workout Push day</h4>
+                        <p class="text-xs text-gray-500 font-medium">Missed</p>
+                    </div>
+                </div>
+                <i class="fa-regular fa-circle-xmark text-gray-400 text-xl"></i>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav fixed bottom-0 left-0 right-0 h-20 flex justify-around items-center px-2 z-50">
+        <a href="index.html" class="nav-item flex flex-col items-center gap-1 p-2 w-16">
+            <i class="fa-solid fa-house text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">Home</span>
+        </a>
+        <a href="calendar.html" class="nav-item active flex flex-col items-center gap-1 p-2 w-16">
+            <i class="fa-regular fa-calendar-days text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">Calendar</span>
+        </a>
+        
+        <div class="fab-container w-16 flex justify-center">
+            <button class="fab w-14 h-14 rounded-full text-white flex items-center justify-center text-2xl absolute border-[6px] border-white" onclick="openAddModal()">
+                <i class="fa-solid fa-plus"></i>
+            </button>
+        </div>
+        
+        <a href="statistics.html" class="nav-item flex flex-col items-center gap-1 p-2 w-16">
+            <i class="fa-solid fa-chart-simple text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">Statistics</span>
+        </a>
+        <a href="profile.html" class="nav-item flex flex-col items-center gap-1 p-2 w-16">
+            <i class="fa-regular fa-user text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">Profile</span>
+        </a>
+    </nav>
+
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCalendar();
+            
+            // Adjust theme colors
+            document.addEventListener('themeChanged', (e) => {
+                applyThemeColors(e.detail.theme);
+            });
+            setTimeout(() => applyThemeColors(document.documentElement.getAttribute('data-theme') || 'green'), 100);
+        });
+
+        function applyThemeColors(theme) {
+            const isBlue = theme === 'blue';
+            const primaryColor = isBlue ? '#5BA4C9' : '#10B981';
+            const lightColor = isBlue ? '#E0F2FE' : '#D1FAE5';
+            
+            // Update active circles
+            document.querySelectorAll('.calendar-day.active-day').forEach(el => {
+                el.style.backgroundColor = primaryColor;
+            });
+            
+            // Update partial circles (opacity)
+            document.querySelectorAll('.calendar-day.partial-day').forEach(el => {
+                el.style.backgroundColor = primaryColor;
+                el.style.opacity = '0.5';
+            });
+            
+            // Update text elements
+            document.querySelectorAll('.theme-text').forEach(el => {
+                el.style.color = primaryColor;
+            });
+            
+            // Update icon backgrounds
+            document.querySelectorAll('.theme-icon-bg').forEach(el => {
+                el.style.backgroundColor = lightColor;
+                el.style.color = primaryColor;
+            });
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-grid');
+            let html = '';
+            
+            // Empty days at start
+            for(let i=0; i<3; i++) {
+                html += `<div></div>`;
+            }
+            
+            // 31 days
+            for(let i=1; i<=31; i++) {
+                let classes = 'calendar-day w-8 h-8 rounded-full flex items-center justify-center mx-auto text-sm font-medium transition-transform cursor-pointer hover:scale-110';
+                
+                if (i === 11) {
+                    // Selected active day
+                    classes += ' active-day text-white shadow-md';
+                } else if (i === 5 || i === 8 || i === 15) {
+                    // Perfect completion
+                    classes += ' active-day text-white';
+                } else if (i === 10 || i === 12 || i === 18) {
+                    // Partial completion
+                    classes += ' partial-day text-white';
+                } else if (i > 11) {
+                    // Future days
+                    classes += ' text-gray-400';
+                } else {
+                    // Past days (no habits recorded)
+                    classes += ' text-gray-700 bg-gray-50';
+                }
+                
+                html += `<div class="${classes}" onclick="selectDate(${i})">${i}</div>`;
+            }
+            grid.innerHTML = html;
+        }
+
+        function selectDate(day) {
+            document.getElementById('selected-date-text').innerText = `March ${day}, 2026`;
+            
+            // Reset active states
+            document.querySelectorAll('.calendar-day').forEach(el => {
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'green';
+                const isBlue = currentTheme === 'blue';
+                const primaryColor = isBlue ? '#5BA4C9' : '#10B981';
+
+                // Check if it's the currently selected day (has shadow)
+                if (el.classList.contains('shadow-md')) {
+                    el.classList.remove('shadow-md');
+                    if(el.classList.contains('active-day')) {
+                        // It was active before selected
+                        el.style.backgroundColor = primaryColor;
+                    }
+                }
+            });
+            
+            // Re-apply theme colors to reset any inline styles overwritten incorrectly
+            applyThemeColors(document.documentElement.getAttribute('data-theme') || 'green');
+            
+            // Give specific target selected style
+            event.currentTarget.classList.add('shadow-md');
+            event.currentTarget.style.backgroundColor = document.documentElement.getAttribute('data-theme') === 'blue' ? '#5BA4C9' : '#10B981';
+            event.currentTarget.classList.remove('text-gray-700', 'bg-gray-50', 'text-gray-400');
+            event.currentTarget.classList.add('text-white');
+            event.currentTarget.style.opacity = '1';
+        }
+    </script>
+</body>
+</html>

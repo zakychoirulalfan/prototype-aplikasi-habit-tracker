@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistics - Habit Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="css/styles.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        green: { 500: '#10B981' },
+                        blue: { 500: '#5BA4C9' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="pb-24">
+
+    <!-- Header -->
+    <header class="px-6 pt-8 pb-4 flex justify-between items-center animate-slide-up">
+        <h1 class="text-2xl font-bold text-gray-900">Statistics</h1>
+        <button class="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 transition">
+            <i class="fa-solid fa-ellipsis-vertical"></i>
+        </button>
+    </header>
+
+    <!-- Time Period Tabs -->
+    <section class="px-6 animate-slide-up delay-100">
+        <div class="flex bg-gray-100 p-1 rounded-full w-full mx-auto" id="period-tabs">
+            <button onclick="setStatPeriod('daily')" class="flex-1 py-2 text-sm font-semibold rounded-full bg-white shadow-sm text-[var(--primary)] transition-all active-tab">Daily</button>
+            <button onclick="setStatPeriod('weekly')" class="flex-1 py-2 text-sm font-medium rounded-full text-gray-500 hover:text-gray-700 transition-all">Weekly</button>
+            <button onclick="setStatPeriod('monthly')" class="flex-1 py-2 text-sm font-medium rounded-full text-gray-500 hover:text-gray-700 transition-all">Monthly</button>
+        </div>
+    </section>
+
+    <!-- Overview Cards -->
+    <section class="px-6 mt-6 flex gap-4 animate-slide-up delay-200">
+        <div class="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+            <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-500 justify-center items-center flex mb-3 text-lg">
+                <i class="fa-solid fa-fire"></i>
+            </div>
+            <p class="text-sm text-gray-500 font-medium">Longest Streak</p>
+            <h3 class="text-2xl font-bold text-gray-900 mt-1">12 Days</h3>
+        </div>
+        <div class="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+            <div class="w-10 h-10 rounded-full bg-green-100 text-green-500 justify-center items-center flex mb-3 text-lg" id="completion-icon-wrapper">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <p class="text-sm text-gray-500 font-medium">Completion</p>
+            <h3 class="text-2xl font-bold text-gray-900 mt-1">85%</h3>
+        </div>
+    </section>
+
+    <!-- Main Chart -->
+    <section class="px-6 mt-6 animate-slide-up delay-300">
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+            <div class="flex justify-between items-end mb-4">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">Activity</h2>
+                    <p class="text-xs text-gray-500" id="activity-subtitle">Since Apr 2026</p>
+                </div>
+            </div>
+            <div class="h-48 relative w-full">
+                <canvas id="activityChart"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <!-- Category Distribution -->
+    <section class="px-6 mt-6 animate-slide-up delay-400">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Category Distribution</h2>
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
+            <div class="w-1/2 relative h-32">
+                <canvas id="categoryChart"></canvas>
+            </div>
+            <div class="w-1/2 pl-4 flex flex-col gap-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-[var(--primary)]"></span>
+                    <span class="text-sm font-medium text-gray-700">Health</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full" style="background-color: var(--accent);"></span>
+                    <span class="text-sm font-medium text-gray-700">Learning</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-gray-200"></span>
+                    <span class="text-sm font-medium text-gray-700">Other</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav fixed bottom-0 left-0 right-0 h-20 flex justify-around items-center px-2 z-50">
+        <a href="index.html" class="nav-item flex flex-col items-center gap-1 p-2 w-16">
+            <i class="fa-solid fa-house text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">Home</span>
+        </a>
+        <a href="calendar.html" class="nav-item flex flex-col items-center gap-1 p-2 w-16">
+            <i class="fa-regular fa-calendar-days text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">Calendar</span>
+        </a>
+        
+        <div class="fab-container w-16 flex justify-center">
+            <button class="fab w-14 h-14 rounded-full text-white flex items-center justify-center text-2xl absolute border-[6px] border-white" onclick="openAddModal()">
+                <i class="fa-solid fa-plus"></i>
+            </button>
+        </div>
+        
+        <a href="statistics.html" class="nav-item active flex flex-col items-center gap-1 p-2 w-16">
+            <i class="fa-solid fa-chart-simple text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">Statistics</span>
+        </a>
+        <a href="profile.html" class="nav-item flex flex-col items-center gap-1 p-2 w-16">
+            <i class="fa-regular fa-user text-xl mb-1"></i>
+            <span class="text-[10px] font-medium">Profile</span>
+        </a>
+    </nav>
+    
+    <!-- floating theme toggle removed -->
+
+    <script src="js/app.js"></script>
+    <script>
+        let activityChartInstance = null;
+        let categoryChartInstance = null;
+        
+        function getThemeColors() {
+            const style = getComputedStyle(document.body);
+            return {
+                primary: style.getPropertyValue('--primary').trim() || '#10B981',
+                primaryLight: style.getPropertyValue('--primary-light').trim() || '#D1FAE5',
+                accent: style.getPropertyValue('--accent').trim() || '#34D399'
+            };
+        }
+
+        function initCharts(period = 'daily') {
+            const colors = getThemeColors();
+            
+            // Adjust Completion Icon color Based on Theme
+            const completionWrapper = document.getElementById('completion-icon-wrapper');
+            if (completionWrapper) {
+                 completionWrapper.style.backgroundColor = colors.primaryLight;
+                 completionWrapper.style.color = colors.primary;
+            }
+            
+            // Account opening date integration mock
+            const accountOpenDate = new Date();
+            accountOpenDate.setMonth(accountOpenDate.getMonth() - 5);
+            document.getElementById('activity-subtitle').innerText = `Since ${accountOpenDate.toLocaleString('default', { month: 'short', year: 'numeric' })}`;
+
+            // Choose data based on period
+            let labels = [];
+            let data = [];
+            if (period === 'daily') {
+                labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                data = [65, 80, 50, 90, 75, 45, 100];
+            } else if (period === 'weekly') {
+                labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+                data = [70, 85, 90, 80];
+            } else {
+                labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+                data = [40, 55, 75, 80, 85, 95];
+            }
+
+            // Activity Bar Chart
+            const ctxActivity = document.getElementById('activityChart').getContext('2d');
+            
+            if (activityChartInstance) activityChartInstance.destroy();
+            
+            activityChartInstance = new Chart(ctxActivity, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Completion',
+                        data: data,
+                        backgroundColor: colors.primary,
+                        borderRadius: 6,
+                        borderSkipped: false,
+                        barThickness: period === 'monthly' ? 16 : 12
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#111827',
+                            padding: 10,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) { return context.raw + '%'; }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: { color: '#F3F4F6', drawBorder: false },
+                            border: { display: false },
+                            ticks: { display: false }
+                        },
+                        x: {
+                            grid: { display: false, drawBorder: false },
+                            border: { display: false },
+                            ticks: { color: '#9CA3AF', font: { family: 'Inter', size: 11, weight: '500' } }
+                        }
+                    }
+                }
+            });
+
+            // Category Doughnut Chart (static layout simulation)
+            const ctxCategory = document.getElementById('categoryChart').getContext('2d');
+            
+            if (categoryChartInstance) categoryChartInstance.destroy();
+            
+            categoryChartInstance = new Chart(ctxCategory, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Health', 'Learning', 'Other'],
+                    datasets: [{
+                        data: period === 'daily' ? [55, 30, 15] : (period === 'weekly' ? [60, 20, 20] : [70, 25, 5]),
+                        backgroundColor: [
+                            colors.primary,
+                            colors.accent,
+                            '#E5E7EB'
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#111827',
+                            padding: 10,
+                            displayColors: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Handle Tab Swapping
+        let currentPeriod = 'daily';
+        function setStatPeriod(newPeriod) {
+            currentPeriod = newPeriod;
+            
+            // Update UI tabs
+            const tabs = document.getElementById('period-tabs').querySelectorAll('button');
+            const themeColors = getThemeColors();
+            
+            tabs.forEach(tab => {
+                if(tab.innerText.toLowerCase() === newPeriod) {
+                    tab.className = `flex-1 py-2 text-sm font-semibold rounded-full bg-white shadow-sm transition-all active-tab`;
+                    tab.style.color = themeColors.primary;
+                } else {
+                    tab.className = `flex-1 py-2 text-sm font-medium rounded-full text-gray-500 hover:text-gray-700 transition-all`;
+                    tab.style.color = '';
+                }
+            });
+            
+            // Re-init chart with new data
+            initCharts(newPeriod);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts(currentPeriod);
+            
+            // Re-render charts when theme changes
+            document.addEventListener('themeChanged', () => {
+                setTimeout(() => {
+                    const activeTab = document.querySelector('.active-tab');
+                    if (activeTab) {
+                        const themeColors = getThemeColors();
+                        activeTab.style.color = themeColors.primary;
+                    }
+                    initCharts(currentPeriod);
+                }, 100);
+            });
+        });
+    </script>
+</body>
+</html>
