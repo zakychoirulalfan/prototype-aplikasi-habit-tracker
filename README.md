@@ -40,9 +40,9 @@
     - NIM: [A320250033]
     - Jurusan: [Rekayasa Perangkat Lunak]
 
-    - Nama: [Nama Anda]
-    - NIM: [NIM Anda]
-    - Jurusan: [Jurusan Anda]
+    - Nama: [Muhammad Hasanudin]
+    - NIM: [A320250028]
+    - Jurusan: [Rekayasa Perangkat Lunak]
 
     - Nama: [Nama Anda]
     - NIM: [NIM Anda]
