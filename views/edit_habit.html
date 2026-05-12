@@ -241,6 +241,7 @@
         </form>
     </div>
 
+    <script src="../js/habits.js"></script>
     <script src="../js/app.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -428,8 +429,9 @@
             document.getElementById('edit-habit-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (!editingHabit) {
-                    alert("Habit ID missing or invalid!");
-                    return window.location.href = 'index.html';
+                    showToast("Habit ID missing or invalid!", "error");
+                    setTimeout(() => window.location.href = 'index.html', 1500);
+                    return;
                 }
 
                 const btn = e.target.querySelector('button[type="submit"]');
@@ -467,40 +469,21 @@
                 editingHabit.evaluation = evalType;
                 editingHabit.unit = habitUnit;
 
-                // Save to localStorage
-                const existingHabits = JSON.parse(localStorage.getItem('habits') || '[]');
+                // Update in Supabase using UUID
+                await updateHabitInSupabase(editingHabit.id, editingHabit);
+
+                // Update localStorage cache
+                const existingHabits = getHabits();
                 const idx = existingHabits.findIndex(h => h.id === editingHabit.id);
                 if (idx !== -1) {
                     existingHabits[idx] = editingHabit;
-                    localStorage.setItem('habits', JSON.stringify(existingHabits));
-                }
-
-                // Also save to Supabase user_habits config if user is logged in
-                try {
-                    const { data: { session } } = await supabaseClient.auth.getSession();
-                    if (session && session.user) {
-                        // Normally we would have habit database IDs here but this is a rough prototype linkage
-                        // Using 'name' or some other unique field to update, or assuming ID matches backend ID
-                        // For this prototype, we'll run an update by simple matching, OR just rely on localStorage.
-                        await supabaseClient.from('user_habits').update({
-                            name: habitName,
-                            goals: habitGoals,
-                            description: habitDesc,
-                            category: catName,
-                            icon_html: catIconHTML,
-                            evaluation: evalType,
-                            unit: habitUnit
-                        }).eq('user_id', session.user.id).eq('name', editingHabit.name); // Using old name if possible? Let's just matching by user is risky if multiple. 
-                        // Note: For a robust app the UUID in localStorage should map exactly to Supabase ID. For prototype this suffices.
-                    }
-                } catch (err) {
-                    console.error('Supabase habit update error:', err);
+                    saveHabitsCache(existingHabits);
                 }
 
                 setTimeout(() => {
-                    alert("Habit updated successfully!");
-                    window.location.href = "index.html";
-                }, 800);
+                    showToast("Habit updated successfully!");
+                    setTimeout(() => window.location.href = "index.html", 1000);
+                }, 300);
             });
         });
 

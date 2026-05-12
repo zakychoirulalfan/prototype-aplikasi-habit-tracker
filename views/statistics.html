@@ -87,6 +87,16 @@
         </div>
     </section>
 
+    <!-- Insights & Reports -->
+    <section class="px-6 mt-6 animate-slide-up delay-400 flex flex-col mb-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Key Insights</h2>
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+            <ul id="insights-list" class="space-y-3">
+                <!-- Dynamically populated -->
+            </ul>
+        </div>
+    </section>
+
     <!-- Tab Bar -->
     <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-2 flex items-center justify-between z-50 shadow-[0_-4px_25px_rgba(0,0,0,0.05)] text-gray-400">
         <a href="index.html" class="nav-item active:scale-90 transition-transform flex flex-col items-center gap-1 p-2 w-16">
@@ -249,6 +259,64 @@
                     }
                 }
             });
+            
+            // Generate Insights
+            generateInsights(stats, period);
+        }
+
+        function generateInsights(stats, period) {
+            const list = document.getElementById('insights-list');
+            if (!list) return;
+            list.innerHTML = '';
+            
+            const theme = document.documentElement.getAttribute('data-theme') || 'green';
+            const isBlue = theme === 'blue';
+            
+            // 1. Trend Insight
+            if (stats.data.length > 1) {
+                const last = stats.data[stats.data.length - 1];
+                const prev = stats.data[stats.data.length - 2];
+                let diff = last - prev;
+                let trendMsg = diff >= 0 
+                    ? `<span class="${isBlue ? 'text-[#5BA4C9]' : 'text-[#10B981]'} font-bold"><i class="fa-solid fa-arrow-trend-up mr-1"></i> Up ${diff}%</span> from previous period.`
+                    : `<span class="text-red-500 font-bold"><i class="fa-solid fa-arrow-trend-down mr-1"></i> Down ${Math.abs(diff)}%</span> from previous period. Keep pushing!`;
+                addInsight(list, "Performance Trend", trendMsg, 'fa-chart-line', 'primary');
+            }
+
+            // 2. Category Focus
+            const catEntries = Object.entries(stats.catCounts);
+            if (catEntries.length > 0) {
+                catEntries.sort((a,b) => b[1] - a[1]);
+                const bestCat = catEntries[0][0];
+                addInsight(list, "Primary Focus Area", `Most of your habits belong to the <b>${bestCat}</b> category.`, 'fa-bullseye', 'orange');
+            }
+            
+            // 3. Consistency
+            if (stats.longestStreak > 2) {
+                addInsight(list, "Strong Consistency", `You reached a ${stats.longestStreak}-day perfect streak. Outstanding!`, 'fa-fire', 'red');
+            } else {
+                addInsight(list, "Building Consistency", "Try linking a new habit to an existing routine to build a streak.", 'fa-lightbulb', 'yellow');
+            }
+        }
+
+        function addInsight(list, title, msg, iconClass, colorMode) {
+            const theme = document.documentElement.getAttribute('data-theme') || 'green';
+            let iconBg = theme === 'blue' ? 'bg-blue-50 text-[#5BA4C9]' : 'bg-green-50 text-[#10B981]';
+            if(colorMode === 'orange') iconBg = 'bg-orange-50 text-orange-500';
+            if(colorMode === 'yellow') iconBg = 'bg-yellow-50 text-yellow-500';
+            if(colorMode === 'red') iconBg = 'bg-red-50 text-red-500';
+
+            list.innerHTML += `
+                <li class="flex gap-4 p-3 bg-gray-50 rounded-2xl border border-gray-100 items-start shadow-sm transition-transform hover:-translate-y-0.5">
+                    <div class="w-10 h-10 rounded-full flex shrink-0 items-center justify-center text-lg ${iconBg}">
+                        <i class="fa-solid ${iconClass}"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-gray-900 font-bold mb-1 text-sm">${title}</h4>
+                        <p class="text-xs text-gray-500 leading-snug">${msg}</p>
+                    </div>
+                </li>
+            `;
         }
         
         // Handle Tab Swapping
@@ -274,7 +342,9 @@
             initCharts(newPeriod);
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Sync habits from Supabase before rendering charts
+            await syncHabitsFromSupabase();
             initCharts(currentPeriod);
             
             // Re-render charts when theme changes

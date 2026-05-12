@@ -241,6 +241,7 @@
         </form>
     </div>
 
+    <script src="../js/habits.js"></script>
     <script src="../js/app.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -403,47 +404,36 @@
                 const habitDesc = document.getElementById('habitDescription').value;
                 const habitUnit = document.getElementById('habitUnit')?.value || '';
 
-                // Create habit object
+                // Create habit via Supabase (returns UUID)
                 const newHabit = {
-                    id: Date.now().toString(),
                     name: habitName,
                     goals: habitGoals,
                     description: habitDesc,
                     category: catName,
                     iconHtml: catIconHTML,
                     evaluation: evalType,
-                    unit: habitUnit,
-                    completedAt: null
+                    unit: habitUnit
                 };
 
-                // Save to localStorage
-                const existingHabits = JSON.parse(localStorage.getItem('habits') || '[]');
-                existingHabits.push(newHabit);
-                localStorage.setItem('habits', JSON.stringify(existingHabits));
+                const supabaseId = await addHabitToSupabase(newHabit);
 
-                // Also save to Supabase user_habits table if user is logged in
-                try {
-                    const { data: { session } } = await supabaseClient.auth.getSession();
-                    if (session && session.user) {
-                        await supabaseClient.from('user_habits').insert({
-                            user_id: session.user.id,
-                            name: habitName,
-                            goals: habitGoals,
-                            description: habitDesc,
-                            category: catName,
-                            icon_html: catIconHTML,
-                            evaluation: evalType,
-                            unit: habitUnit
-                        });
-                    }
-                } catch (err) {
-                    console.error('Supabase habit save error:', err);
+                if (supabaseId) {
+                    // Use the Supabase UUID as the habit ID
+                    newHabit.id = supabaseId;
+                } else {
+                    // Fallback to timestamp ID if Supabase fails
+                    newHabit.id = Date.now().toString();
                 }
 
+                // Update localStorage cache
+                const existingHabits = getHabits();
+                existingHabits.push(newHabit);
+                saveHabitsCache(existingHabits);
+
                 setTimeout(() => {
-                    alert("Habit Created Successfully!");
-                    window.location.href = "index.html";
-                }, 800);
+                    showToast("Habit Created Successfully!");
+                    setTimeout(() => window.location.href = "index.html", 1000);
+                }, 300);
             });
         });
 

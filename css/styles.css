@@ -1,5 +1,4 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-@import "tailwindcss";
 :root {
   /* Default Green Theme */
   --primary: #10B981;
@@ -41,6 +40,11 @@ html, body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -53,6 +57,11 @@ html, body {
 
 .animate-slide-up {
   animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   opacity: 0;
 }
 
@@ -284,4 +293,45 @@ input[type="number"].cal-num-input::-webkit-inner-spin-button {
   z-index: 30;
   pointer-events: none;
   box-shadow: 0 1px 4px rgba(239,68,68,0.4);
+}
+
+/* Modal Input Styling */
+#edit-username-input {
+  background-color: #F9FAFB;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#edit-username-input:focus {
+  background-color: white;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+[data-theme="blue"] #edit-username-input:focus {
+  box-shadow: 0 0 0 3px rgba(91, 164, 201, 0.1);
+}
+
+/* Modal Buttons */
+#edit-username-save,
+#edit-username-cancel {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+#edit-username-save:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+#edit-username-save:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+#edit-username-cancel:hover {
+  background-color: #E5E7EB;
+}
+
+#edit-username-cancel:active {
+  transform: scale(0.98);
 }

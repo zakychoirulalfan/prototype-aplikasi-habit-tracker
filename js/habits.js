@@ -1,16 +1,22 @@
-// ===== habits.js — Shared Habit Data Layer =====
-// Reads/writes habits from localStorage and renders them across pages.
+// ===== habits.js — Shared Habit Data Layer (Supabase-first) =====
+// Uses Supabase as source of truth with localStorage as cache.
+// supabaseClient is defined in app.js (loaded after this file).
 
 // --- Select mode state ---
 let _selectMode = false;
 let _selectedIds = new Set();
 
-// --- Data helpers ---
+// --- Helper to safely get the supabase client ---
+function getClient() {
+    return window.supabaseClient || null;
+}
+
+// --- Data helpers (localStorage as cache) ---
 function getHabits() {
     return JSON.parse(localStorage.getItem('habits') || '[]');
 }
 
-function saveHabits(habits) {
+function saveHabitsCache(habits) {
     localStorage.setItem('habits', JSON.stringify(habits));
 }
 
@@ -25,16 +31,20 @@ function getLoginDate() {
 }
 
 // --- Completion tracking (per habit per date) ---
-// Shape: { "2026-04-05": { "<habitId>": true/false } }
+// Cache shape: { "2026-04-05": { "<habitId>": true/false } }
 function getCompletions() {
     return JSON.parse(localStorage.getItem('completions') || '{}');
 }
 
 function setCompletion(habitId, dateStr, value) {
+    // Update local cache
     const c = getCompletions();
     if (!c[dateStr]) c[dateStr] = {};
     c[dateStr][habitId] = value;
     localStorage.setItem('completions', JSON.stringify(c));
+
+    // Persist to Supabase habit_logs
+    upsertHabitLog(habitId, dateStr, { completed: value });
 }
 
 function isHabitCompleted(habitId, dateStr) {
@@ -43,7 +53,6 @@ function isHabitCompleted(habitId, dateStr) {
 }
 
 // --- Numeric value tracking (per habit per date) ---
-// Shape: { "2026-04-05": { "<habitId>": number } }
 function getNumericValues() {
     return JSON.parse(localStorage.getItem('numericValues') || '{}');
 }
@@ -54,16 +63,20 @@ function getNumericValue(habitId, dateStr) {
 }
 
 function setNumericValue(habitId, dateStr, value) {
+    // Update local cache
     const nv = getNumericValues();
     if (!nv[dateStr]) nv[dateStr] = {};
     nv[dateStr][habitId] = value;
     localStorage.setItem('numericValues', JSON.stringify(nv));
     // Mark completed if value > 0
     setCompletion(habitId, dateStr, value > 0);
+    // Persist numeric value to Supabase
+    upsertHabitLog(habitId, dateStr, { numeric_value: value, completed: value > 0 });
 }
 
 // --- Timer state tracking ---
-// Shape: { "<habitId>": { running: bool, elapsed: number (seconds), lastTick: timestamp } }
+// Running state is kept in localStorage only (real-time).
+// Elapsed time is persisted to Supabase when timer is paused.
 function getTimerStates() {
     return JSON.parse(localStorage.getItem('timerStates') || '{}');
 }
@@ -78,6 +91,188 @@ function formatTime(totalSeconds) {
     const s = totalSeconds % 60;
     const pad = n => String(n).padStart(2, '0');
     return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+
+// --- Supabase Upsert for habit_logs ---
+async function upsertHabitLog(habitId, dateStr, fields) {
+    const client = getClient();
+    if (!client) return;
+    try {
+        const { data: { session } } = await client.auth.getSession();
+        if (!session) return;
+
+        const payload = {
+            user_id: session.user.id,
+            habit_id: habitId,
+            log_date: dateStr,
+            updated_at: new Date().toISOString(),
+            ...fields
+        };
+
+        await client.from('habit_logs').upsert(payload, {
+            onConflict: 'habit_id,log_date'
+        });
+    } catch (err) {
+        console.error('habit_logs upsert error:', err);
+    }
+}
+
+// --- Supabase Sync: Fetch habits and logs on page load ---
+async function syncHabitsFromSupabase() {
+    const client = getClient();
+    if (!client) return;
+
+    try {
+        const { data: { session } } = await client.auth.getSession();
+        if (!session) return;
+
+        // Fetch habits from user_habits
+        const { data: habits, error } = await client
+            .from('user_habits')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching habits:', error);
+            return;
+        }
+
+        // Transform to app format and cache in localStorage
+        const appHabits = (habits || []).map(h => ({
+            id: h.id,
+            name: h.name,
+            goals: h.goals || '',
+            description: h.description || '',
+            category: h.category || 'study',
+            iconHtml: h.icon_html || '<i class="fa-solid fa-star"></i>',
+            evaluation: h.evaluation || 'checklist',
+            unit: h.unit || ''
+        }));
+
+        saveHabitsCache(appHabits);
+
+        // Fetch habit_logs for completions
+        const { data: logs, error: logsError } = await client
+            .from('habit_logs')
+            .select('*')
+            .eq('user_id', session.user.id);
+
+        if (logsError) {
+            console.error('Error fetching habit logs:', logsError);
+            return;
+        }
+
+        // Build completions, numeric values, and timer elapsed from logs
+        const completions = {};
+        const numericValues = {};
+        const timerStates = getTimerStates(); // preserve running state
+
+        (logs || []).forEach(log => {
+            const dateStr = log.log_date;
+            if (!completions[dateStr]) completions[dateStr] = {};
+            if (!numericValues[dateStr]) numericValues[dateStr] = {};
+
+            completions[dateStr][log.habit_id] = log.completed;
+
+            if (log.numeric_value > 0) {
+                numericValues[dateStr][log.habit_id] = log.numeric_value;
+            }
+
+            if (log.timer_elapsed > 0) {
+                // Only set elapsed from DB if timer isn't currently running locally
+                if (!timerStates[log.habit_id] || !timerStates[log.habit_id].running) {
+                    timerStates[log.habit_id] = {
+                        running: false,
+                        elapsed: log.timer_elapsed,
+                        lastTick: null
+                    };
+                }
+            }
+        });
+
+        localStorage.setItem('completions', JSON.stringify(completions));
+        localStorage.setItem('numericValues', JSON.stringify(numericValues));
+        saveTimerStates(timerStates);
+
+        return appHabits;
+    } catch (err) {
+        console.error('syncHabitsFromSupabase error:', err);
+    }
+}
+
+// --- Add habit to Supabase (returns the Supabase UUID) ---
+async function addHabitToSupabase(habitData) {
+    const client = getClient();
+    if (!client) return null;
+
+    try {
+        const { data: { session } } = await client.auth.getSession();
+        if (!session) return null;
+
+        const { data, error } = await client.from('user_habits').insert({
+            user_id: session.user.id,
+            name: habitData.name,
+            goals: habitData.goals,
+            description: habitData.description,
+            category: habitData.category,
+            icon_html: habitData.iconHtml,
+            evaluation: habitData.evaluation,
+            unit: habitData.unit || ''
+        }).select('id').single();
+
+        if (error) {
+            console.error('Supabase habit insert error:', error);
+            return null;
+        }
+
+        return data.id; // Return the Supabase UUID
+    } catch (err) {
+        console.error('addHabitToSupabase error:', err);
+        return null;
+    }
+}
+
+// --- Update habit in Supabase ---
+async function updateHabitInSupabase(habitId, habitData) {
+    const client = getClient();
+    if (!client) return;
+
+    try {
+        const { data: { session } } = await client.auth.getSession();
+        if (!session) return;
+
+        await client.from('user_habits').update({
+            name: habitData.name,
+            goals: habitData.goals,
+            description: habitData.description,
+            category: habitData.category,
+            icon_html: habitData.iconHtml,
+            evaluation: habitData.evaluation,
+            unit: habitData.unit || '',
+            updated_at: new Date().toISOString()
+        }).eq('id', habitId).eq('user_id', session.user.id);
+    } catch (err) {
+        console.error('updateHabitInSupabase error:', err);
+    }
+}
+
+// --- Delete habits from Supabase ---
+async function deleteHabitsFromSupabase(habitIds) {
+    const client = getClient();
+    if (!client) return;
+
+    try {
+        const { data: { session } } = await client.auth.getSession();
+        if (!session) return;
+
+        await client.from('user_habits')
+            .delete()
+            .eq('user_id', session.user.id)
+            .in('id', habitIds);
+    } catch (err) {
+        console.error('deleteHabitsFromSupabase error:', err);
+    }
 }
 
 // --- Category color mapping ---
@@ -263,9 +458,10 @@ function attachHomeCardListeners(dateStr) {
                 ts[id].lastTick = null;
                 btn.innerHTML = '<i class="fa-solid fa-play text-sm"></i>';
                 btn.classList.remove('bg-white', 'text-[var(--primary)]');
-                // Mark as completed if any time recorded
+                // Mark as completed if any time recorded + persist to Supabase
                 if (ts[id].elapsed > 0) {
                     setCompletion(id, dateStr, true);
+                    upsertHabitLog(id, dateStr, { timer_elapsed: ts[id].elapsed, completed: true });
                 }
             } else {
                 // Start
@@ -384,7 +580,6 @@ function renderHomeDateRedDots() {
         if (!allCompleted) {
             if (!dot) {
                 dot = document.createElement('span');
-                // Use the .red-dot CSS class for positioning
                 dot.className = 'red-dot';
                 card.appendChild(dot);
             }
@@ -486,7 +681,6 @@ function renderCalendarHabits(dateStr) {
     });
 
     container.innerHTML = html;
-
 }
 
 // Render red dots on calendar grid
@@ -643,8 +837,6 @@ function toggleSelectMode() {
         }
     }
     
-    // Need to find Date if we're on Home page
-    // Since getHomeDate() or checking document.querySelectorAll('.date-btn.active') works
     renderHomeHabits(); 
 }
 
@@ -689,19 +881,20 @@ function closeDeleteModal() {
     }
 }
 
-function executeDeletion() {
+async function executeDeletion() {
     let habits = getHabits();
     
-    // Remove selected
-    habits = habits.filter(h => !_selectedIds.has(h.id));
-    saveHabits(habits);
+    const idsToDelete = Array.from(_selectedIds);
     
-    // Additionally we would need a supabase backend sync for deletion,
-    // but without an explicit supabase client block in habits.js, we will just delete locally 
-    // in this prototype version or rely on app.js to sync if needed.
+    // Remove from Supabase first
+    await deleteHabitsFromSupabase(idsToDelete);
+    
+    // Remove from local cache
+    habits = habits.filter(h => !_selectedIds.has(h.id));
+    saveHabitsCache(habits);
     
     closeDeleteModal();
-    toggleSelectMode(); // Exit select mode implicitly
+    toggleSelectMode(); // Exit select mode
 }
 
 // Expose selection functions for html inline calls
