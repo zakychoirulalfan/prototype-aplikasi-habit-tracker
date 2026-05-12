@@ -164,6 +164,13 @@
                 return;
             }
 
+            // Check rate limit
+            const rateLimit = checkEmailRateLimit(email);
+            if (!rateLimit.allowed) {
+                alert(rateLimit.message);
+                return;
+            }
+
             if(confirm(`Send a password reset link to ${email}?`)) {
                 try {
                     const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
@@ -173,6 +180,8 @@
                     if (error) {
                         alert("Error: " + (error.message || 'Failed to send reset link'));
                     } else {
+                        // Record successful request for rate limiting
+                        recordEmailRequest(email);
                         alert("Password reset link sent! Please check your email.");
                     }
                 } catch (err) {
@@ -180,6 +189,7 @@
                 }
             }
         }
+
         
         function logout() {
             handleSignOut();

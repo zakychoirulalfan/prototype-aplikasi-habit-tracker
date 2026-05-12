@@ -5,21 +5,22 @@
 
 ## 📁 File yang Dibuat/Diubah
 
-### 1. **forgot_password.html** (BARU)
-   - Halaman untuk pengguna meminta link reset password
-   - Input email
+### 1. **password_reset.html** (BARU)
+   - Halaman gabungan untuk forgot password dan reset password
+   - Conditional rendering berdasarkan session
+   - Input email untuk request reset link
+   - Input password baru jika ada session valid
    - Mengirim email reset via Supabase
    - Menampilkan pesan sukses/error
 
-### 2. **reset_password.html** (BARU)
-   - Halaman untuk mengatur password baru (diakses dari link email)
-   - Input password baru dan konfirmasi
-   - Validasi password match
-   - Pengecekan session validity
-   - Redirect ke login setelah sukses
+### 2. **forgot_password.html** (LAMA - masih ada untuk backup)
+   - Halaman lama untuk request reset link
 
-### 3. **login.html** (DIPERBARUI)
-   - Link "Forgot Password?" sekarang mengarah ke `forgot_password.html`
+### 3. **reset_password.html** (LAMA - masih ada untuk backup)
+   - Halaman lama untuk set password baru
+
+### 4. **login.html** (DIPERBARUI)
+   - Link "Forgot Password?" sekarang mengarah ke `password_reset.html`
 
 ### 4. **profile.html** (DIPERBARUI)
    - Fungsi `resetPassword()` sekarang menggunakan Supabase
@@ -37,8 +38,8 @@ Anda HARUS mengonfigurasi URL redirect di Supabase untuk memastikan link reset p
 2. Pilih project Anda: `loovtbdzjgpqamhssnue`
 3. Pergi ke **Authentication > Email Templates**
 4. Tambahkan redirect URL di bagian **Allowed Redirect URLs**
-   - Jika localhost: `http://localhost:3000/views/reset_password.html`
-   - Jika production: `https://yourdomain.com/views/reset_password.html`
+   - Jika localhost: `http://localhost:8000/views/password_reset.html`
+   - Jika production: `https://yourdomain.com/views/password_reset.html`
 
 Atau lewat **Settings > Auth > Email Templates:**
 - Tambahkan default URL redirect untuk password recovery

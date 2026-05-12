@@ -1,8 +1,16 @@
 // Set up Supabase Client
-const SUPABASE_URL = 'https://loovtbdzjgpqamhssnue.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxvb3Z0YmR6amdwcWFtaHNzbnVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMDI3MTcsImV4cCI6MjA5MDc3ODcxN30.StgTqDRbsasnEq7gfnkF4P1bZTaV8pf3BmPIhUPFI4Q';
+if (typeof SUPABASE_URL === 'undefined') {
+    window.SUPABASE_URL = 'https://loovtbdzjgpqamhssnue.supabase.co';
+}
+if (typeof SUPABASE_ANON_KEY === 'undefined') {
+    window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxvb3Z0YmR6amdwcWFtaHNzbnVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMDI3MTcsImV4cCI6MjA5MDc3ODcxN30.StgTqDRbsasnEq7gfnkF4P1bZTaV8pf3BmPIhUPFI4Q';
+}
+
 // Ensure Supabase JS CDN is loaded in HTML before app.js
-const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+if (typeof supabaseClient === 'undefined') {
+    window.supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+}
+
 
 // Initialize theme
 function initTheme() {
@@ -544,3 +552,75 @@ function selectSliderDate(el, dateNum) {
 function openAddModal() {
     window.location.href = 'add_habit.html';
 }
+
+/**
+ * Check if an email has exceeded the rate limit for forgot password requests.
+ * Limit: 3 requests per hour.
+ * @param {string} email 
+ * @returns {Object} { allowed: boolean, message: string, retryAfter: number }
+ */
+function checkEmailRateLimit(email) {
+    const LIMIT = 3;
+    const WINDOW_MS = 60 * 60 * 1000; // 1 hour
+    const now = Date.now();
+    
+    // Get stored data
+    let rateData = {};
+    try {
+        rateData = JSON.parse(localStorage.getItem('email_rate_limits') || '{}');
+    } catch (e) {
+        console.error('Error parsing rate limit data', e);
+    }
+    
+    // Clean up old entries
+    const cleanedData = {};
+    for (const key in rateData) {
+        if (now - rateData[key].lastReset < WINDOW_MS) {
+            cleanedData[key] = rateData[key];
+        }
+    }
+    
+    let userLimit = cleanedData[email];
+    
+    if (!userLimit) {
+        return { allowed: true };
+    }
+    
+    if (userLimit.count >= LIMIT) {
+        const timeLeft = Math.ceil((userLimit.lastReset + WINDOW_MS - now) / (60 * 1000));
+        return {
+            allowed: false,
+            message: `Rate limit exceeded. Please try again in ${timeLeft} minutes.`,
+            retryAfter: timeLeft
+        };
+    }
+    
+    return { allowed: true };
+}
+
+/**
+ * Record a successful email request for rate limiting.
+ * @param {string} email 
+ */
+function recordEmailRequest(email) {
+    const WINDOW_MS = 60 * 60 * 1000;
+    const now = Date.now();
+    let rateData = {};
+    try {
+        rateData = JSON.parse(localStorage.getItem('email_rate_limits') || '{}');
+    } catch (e) {
+        console.error('Error parsing rate limit data', e);
+    }
+    
+    if (!rateData[email] || (now - rateData[email].lastReset > WINDOW_MS)) {
+        rateData[email] = {
+            count: 1,
+            lastReset: now
+        };
+    } else {
+        rateData[email].count += 1;
+    }
+    
+    localStorage.setItem('email_rate_limits', JSON.stringify(rateData));
+}
+
