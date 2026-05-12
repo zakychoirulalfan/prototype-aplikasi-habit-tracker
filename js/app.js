@@ -1,9 +1,9 @@
 // Set up Supabase Client
 if (typeof SUPABASE_URL === 'undefined') {
-    window.SUPABASE_URL = 'https://loovtbdzjgpqamhssnue.supabase.co';
+    window.SUPABASE_URL = 'https://fjbiwrdurcburbaognan.supabase.co';
 }
 if (typeof SUPABASE_ANON_KEY === 'undefined') {
-    window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxvb3Z0YmR6amdwcWFtaHNzbnVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMDI3MTcsImV4cCI6MjA5MDc3ODcxN30.StgTqDRbsasnEq7gfnkF4P1bZTaV8pf3BmPIhUPFI4Q';
+    window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqYml3cmR1cmNidXJiYW9nbmFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1OTQxMjEsImV4cCI6MjA5NDE3MDEyMX0.0-X3hAXeyU12eLambrS-pM9MGNbUKoNcINFlANDoKBA';
 }
 
 // Ensure Supabase JS CDN is loaded in HTML before app.js
@@ -263,13 +263,21 @@ async function setupAuthListener() {
 
 function handleRouteProtection(session) {
     const currentPath = window.location.pathname.toLowerCase();
-    const isPublicRoute = currentPath.includes('login.html') || currentPath.includes('register.html');
+    const isPublicRoute = currentPath.includes('login') 
+        || currentPath.includes('register')
+        || currentPath.includes('forgot_password')
+        || currentPath.includes('reset_password')
+        || currentPath.includes('password_reset');
     
     if (!session && !isPublicRoute) {
         // Not logged in and on protected page -> redirect to login
         window.location.href = 'login.html';
     } else if (session && isPublicRoute) {
         // Logged in but on login/register page -> redirect to index
+        // Don't redirect if user is on password reset page (they may be resetting password)
+        if (currentPath.includes('reset_password') || currentPath.includes('password_reset')) {
+            return;
+        }
         window.location.href = 'index.html';
     }
 }
