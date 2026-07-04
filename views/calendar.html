@@ -65,15 +65,24 @@
     <section class="px-6 mt-6 animate-slide-up delay-300">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-bold text-gray-900" id="selected-date-text">Select a date</h3>
-            <div id="sync-indicator" class="hidden flex items-center gap-1.5">
-                <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-500">Live</span>
+            <div class="flex items-center gap-3">
+                <div id="sync-indicator" class="hidden flex items-center gap-1.5">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-500">Live</span>
+                </div>
             </div>
         </div>
         <div id="calendar-habit-list" class="flex flex-col gap-3">
             <div class="text-center py-6">
                 <p class="text-gray-400 text-sm">Pilih tanggal untuk melihat habit</p>
             </div>
+        </div>
+        
+        <!-- Clear All Button at the bottom -->
+        <div class="mt-4 flex justify-center pb-2">
+            <button onclick="clearAllHabits()" class="border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-colors duration-300 font-bold px-6 py-2 rounded-xl flex items-center gap-2 text-sm shadow-sm" title="Clear All Habits">
+                <i class="fa-solid fa-trash-can"></i> Clear All
+            </button>
         </div>
     </section>
 
@@ -323,6 +332,53 @@
                 syncIndicator && syncIndicator.classList.add('hidden');
             }
         }
+
+        // ─── Fitur Clear Habit (Single & All) ──────────────────────────────
+        window.clearHabit = async function(id) {
+            // Hapus dari local state
+            let habits = getHabits();
+            habits = habits.filter(h => h.id !== id);
+            saveHabitsCache(habits);
+            
+            // Hapus dari Supabase / MySQL backend
+            await deleteHabitsFromSupabase([id]);
+            
+            // Update re-render UI secara otomatis
+            renderCalendarFull();
+            if (typeof renderCalendarRedDots === 'function') renderCalendarRedDots();
+            if (typeof showToast === 'function') showToast('Satu habit berhasil dihapus dari kalender.');
+        };
+
+        window.clearAllHabits = function() {
+            const habits = getHabits();
+            if (habits.length === 0) {
+                if (typeof showToast === 'function') showToast('Kalender sudah kosong.', 'error');
+                return;
+            }
+
+            const confirmAction = async () => {
+                const ids = habits.map(h => h.id);
+                
+                // Kosongkan dari local state
+                saveHabitsCache([]);
+                
+                // Hapus dari backend
+                await deleteHabitsFromSupabase(ids);
+                
+                // Update re-render UI secara otomatis
+                renderCalendarFull();
+                if (typeof renderCalendarRedDots === 'function') renderCalendarRedDots();
+                if (typeof showToast === 'function') showToast('Semua habit berhasil dibersihkan dari kalender.');
+            };
+
+            const msg = 'Apakah Anda yakin ingin menghapus semua jadwal habit ini dari kalender? Tindakan ini tidak dapat dibatalkan.';
+            
+            if (typeof showConfirmModal === 'function') {
+                showConfirmModal('Clear All Habits', msg, 'Ya, Hapus Semua', 'bg-red-500 hover:bg-red-600', confirmAction);
+            } else {
+                if (confirm(msg)) confirmAction();
+            }
+        };
     </script>
 </body>
 </html>

@@ -1009,3 +1009,78 @@ function getAchievementsData() {
     };
 }
 window.getAchievementsData = getAchievementsData;
+
+// =============================================
+// GLOBAL DELETE FUNCTIONS
+// =============================================
+window.deleteHabit = async function(id) {
+    const confirmAction = async () => {
+        let habits = getHabits();
+        habits = habits.filter(h => h.id !== id);
+        saveHabitsCache(habits);
+        
+        await deleteHabitsFromSupabase([id]);
+        
+        if (typeof renderHomeHabits === 'function') renderHomeHabits();
+        if (typeof renderCalendarFull === 'function') renderCalendarFull();
+        if (typeof renderCalendarRedDots === 'function') renderCalendarRedDots();
+        if (typeof renderHomeDateRedDots === 'function') renderHomeDateRedDots();
+        
+        if (typeof showToast === 'function') showToast('Habit berhasil dihapus');
+    };
+
+    if (typeof showConfirmModal === 'function') {
+        showConfirmModal(
+            'Hapus Habit',
+            'Yakin ingin menghapus habit ini?',
+            'Hapus',
+            'bg-red-500 hover:bg-red-600',
+            confirmAction
+        );
+    } else {
+        if (confirm('Yakin ingin menghapus habit ini?')) {
+            confirmAction();
+        }
+    }
+}
+
+window.deleteAllHabits = function() {
+    const message = 'Apakah Anda yakin ingin menghapus SEMUA habit? Aksi ini akan mengosongkan seluruh daftar habit dan tidak dapat dibatalkan.';
+    
+    const confirmAction = async () => {
+        const habits = getHabits();
+        if (habits.length === 0) {
+            if (typeof showToast === 'function') showToast('Tidak ada habit untuk dihapus', 'error');
+            return;
+        }
+        const ids = habits.map(h => h.id);
+        
+        // Kosongkan dari local storage
+        saveHabitsCache([]);
+        
+        // Hapus dari backend
+        await deleteHabitsFromSupabase(ids);
+        
+        // Re-render UI
+        if (typeof renderHomeHabits === 'function') renderHomeHabits();
+        if (typeof renderCalendarFull === 'function') renderCalendarFull();
+        if (typeof renderCalendarRedDots === 'function') renderCalendarRedDots();
+        if (typeof renderHomeDateRedDots === 'function') renderHomeDateRedDots();
+        
+        if (typeof showToast === 'function') showToast('Semua habit berhasil dihapus');
+    };
+
+    if (typeof showConfirmModal === 'function') {
+        showConfirmModal(
+            'Hapus Semua Habit',
+            message,
+            'Ya, Hapus Semua',
+            'bg-red-500 hover:bg-red-600',
+            confirmAction
+        );
+    } else {
+        if (confirm(message)) {
+            confirmAction();
+        }
+    }
+}

@@ -7,26 +7,13 @@
 // Stub agar kode lama yang masih referensikan supabaseClient tidak crash
 const supabaseClient = null;
 
-// Initialize theme
+// Initialize theme (Dark mode removed)
 function initTheme() {
-    const isAdminPage = window.location.pathname.toLowerCase().includes('admin_dashboard.html');
-
-    if (isAdminPage) {
-        // Admin theme handling (defaults to dark)
-        const savedTheme = localStorage.getItem('admin_theme') || 'dark';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        document.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: savedTheme } }));
-    } else {
-        // User theme handling (defaults to light/green, forces out of dark)
-        let savedTheme = localStorage.getItem('theme') || 'light';
-        if (savedTheme === 'dark') {
-            savedTheme = 'light';
-            localStorage.setItem('theme', 'light');
-        }
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        setupBackgroundGradient(savedTheme);
-        document.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: savedTheme } }));
-    }
+    let savedTheme = 'light';
+    localStorage.setItem('theme', savedTheme);
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    setupBackgroundGradient(savedTheme);
+    document.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: savedTheme } }));
 }
 
 // Global dynamic background gradient setup setup
@@ -74,27 +61,14 @@ function updateGradientColor(theme) {
 
 // Toggle theme between light and dark
 function toggleTheme() {
-    const isAdminPage = window.location.pathname.toLowerCase().includes('admin_dashboard.html');
-
-    if (isAdminPage) {
-        const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('admin_theme', newTheme);
-        document.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: newTheme } }));
-    } else {
-        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-        let newTheme;
-        if (currentTheme === 'light' || currentTheme === 'green') {
-            newTheme = 'blue';
-        } else {
-            newTheme = 'green';
-        }
-        document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-        updateGradientColor(newTheme);
-        document.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: newTheme } }));
-    }
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    setupBackgroundGradient(newTheme);
+    
+    document.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: newTheme } }));
 }
 
 // Ripple effect for interactive elements

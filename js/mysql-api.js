@@ -235,13 +235,20 @@ function renderSyncedHabits(containerId, habits, dateStr, context = 'calendar') 
                             ${statusLabel}
                         </span>
                     </td>
-                    <td class="px-4 py-3 text-center">
-                        <button
-                            class="w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all mx-auto ${btnClass}"
-                            title="${isCompleted ? 'Tandai belum selesai' : 'Tandai selesai'}"
-                            onclick="event.stopPropagation(); mysqlToggleAndRefresh(${h.habit_id}, '${dateStr}', '${containerId}', '${context}')">
-                            <i class="fa-solid fa-check text-xs ${isCompleted ? 'visible' : 'invisible'}"></i>
-                        </button>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center justify-center gap-2">
+                            <button
+                                class="w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${btnClass}"
+                                title="${isCompleted ? 'Tandai belum selesai' : 'Tandai selesai'}"
+                                onclick="event.stopPropagation(); mysqlToggleAndRefresh(${h.habit_id}, '${dateStr}', '${containerId}', '${context}')">
+                                <i class="fa-solid fa-check text-xs ${isCompleted ? 'visible' : 'invisible'}"></i>
+                            </button>
+                            <button class="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                title="Hapus dari kalender"
+                                onclick="event.stopPropagation(); if(typeof clearHabit === 'function') clearHabit(${h.habit_id}); else if(typeof deleteHabit === 'function') deleteHabit(${h.habit_id});">
+                                <i class="fa-regular fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>`;
         });
