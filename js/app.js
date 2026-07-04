@@ -621,7 +621,12 @@ function renderDatesForMonth(year, monthIndex, activeDateToSet = null, scroll = 
     for (let i = 1; i <= daysInMonth; i++) {
         const d = new Date(year, monthIndex, i);
         const dayName = days[d.getDay()];
-        const dateStr = d.toISOString().slice(0, 10);
+        // FIX: jangan pakai d.toISOString().slice(0,10) — toISOString() mengonversi
+        // ke UTC, sehingga untuk timezone UTC+ (mis. WIB/WITA/WIT) tanggalnya bisa
+        // mundur satu hari (contoh: 4 Juli 00:00 WIB = 3 Juli 17:00 UTC).
+        // getLocalDateString() (dari habits.js) mengambil tanggal dari waktu lokal,
+        // bukan UTC, jadi hasilnya konsisten dengan tanggal yang tertulis di kartu.
+        const dateStr = getLocalDateString(d);
 
         let isActive = '';
         let style = '';
