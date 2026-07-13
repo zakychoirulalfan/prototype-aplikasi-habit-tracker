@@ -268,7 +268,7 @@ async function addHabitToSupabase(habitData) {
     if (!userId) return null;
 
     try {
-        const response = await fetch('http://localhost:3000/api/habits', {
+        const response = await fetch('/api/habits', {
             method : 'POST',
             headers: { 'Content-Type': 'application/json', 'X-User-Id': userId },
             body   : JSON.stringify({
@@ -294,7 +294,7 @@ async function updateHabitInSupabase(habitId, habitData) {
     if (!userId) return;
 
     try {
-        await fetch(`http://localhost:3000/api/habits/${habitId}`, {
+        await fetch(`/api/habits/${habitId}`, {
             method : 'PUT',
             headers: { 'Content-Type': 'application/json', 'X-User-Id': userId },
             body   : JSON.stringify({
@@ -317,7 +317,7 @@ async function deleteHabitsFromSupabase(habitIds) {
     try {
         // Hapus satu per satu (MySQL tidak support batch delete via REST sederhana)
         await Promise.all(habitIds.map(id =>
-            fetch(`http://localhost:3000/api/habits/${id}`, {
+            fetch(`/api/habits/${id}`, {
                 method : 'DELETE',
                 headers: { 'X-User-Id': userId }
             })

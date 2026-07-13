@@ -552,7 +552,7 @@ async function handleEmailRegister(e) {
         console.log("Mengirim data registrasi ke Laragon via Node.js Express...");
 
         // 5. Kirim data bersih ke server backend lokal port 3000
-        const response = await fetch('http://localhost:3000/api/register', {
+        const response = await fetch('/api/register', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

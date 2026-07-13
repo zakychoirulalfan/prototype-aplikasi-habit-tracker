@@ -7,11 +7,11 @@
 
 require('dotenv').config(); // Harus di baris paling atas
 
-const express    = require('express');
-const mysql      = require('mysql2');
-const cors       = require('cors');
-const crypto     = require('crypto');   // built-in Node.js
-const bcrypt     = require('bcryptjs');
+const express = require('express');
+const mysql = require('mysql2');
+const cors = require('cors');
+const crypto = require('crypto');   // built-in Node.js
+const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 
 const app = express();
@@ -19,33 +19,48 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// WAJIB UNTUK RENDER: Menyajikan file Frontend secara aman tanpa merusak path
+const path = require('path');
+app.use('/views', express.static(path.join(__dirname, 'views')));
+app.use('/css', express.static(path.join(__dirname, 'css')));
+app.use('/js', express.static(path.join(__dirname, 'js')));
+
+// Redirect otomatis ke index.html saat web pertama kali dibuka
+app.get('/', (req, res) => {
+    res.redirect('/views/index.html');
+});// ================================================================
+// 1. KONEKSI DATABASE (dari .env — Cloud Aiven)
 // ================================================================
-// 1. KONEKSI DATABASE (dari .env — standar Laragon)
-// ================================================================
-const db = mysql.createConnection({
-    host    : process.env.DB_HOST     || 'localhost',
-    user    : process.env.DB_USER     || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME     || 'habit_tracker',
-    port    : parseInt(process.env.DB_PORT) || 3306
+const db = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: parseInt(process.env.DB_PORT) || 21677,
+    // WAJIB UNTUK AIVEN (CLOUD) AGAR KONEKSI DITERIMA:
+    ssl: {
+        rejectUnauthorized: false
+    }
 });
 
-db.connect((err) => {
+db.getConnection((err, connection) => {
     if (err) {
-        console.error('❌ Koneksi ke Laragon Gagal:', err.stack);
+        console.error('❌ Koneksi ke Database Cloud Aiven Gagal:', err.stack);
         return;
     }
-    console.log(`✅ Terhubung ke MySQL Laragon → database: ${process.env.DB_NAME || 'habit_tracker'}`);
+    console.log(`✅ Terhubung ke MySQL Cloud Aiven → database: ${process.env.DB_NAME}`);
+    connection.release();
 });
+
 
 // ================================================================
 // 2. KONFIGURASI NODEMAILER (SMTP Kustom dari .env)
 // ================================================================
 const mailer = nodemailer.createTransport({
-    host  : process.env.SMTP_HOST,
-    port  : parseInt(process.env.SMTP_PORT) || 587,
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT) || 587,
     secure: process.env.SMTP_SECURE === 'true',
-    auth  : {
+    auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS
     }
@@ -65,10 +80,10 @@ app.get('/auth/test-smtp', async (req, res) => {
     mailer.verify((err, success) => {
         if (err) {
             return res.status(500).json({
-                ok     : false,
+                ok: false,
                 message: 'Koneksi SMTP GAGAL',
-                detail : err.message,
-                tips   : [
+                detail: err.message,
+                tips: [
                     'Pastikan SMTP_USER dan SMTP_PASS di .env sudah benar',
                     'Untuk Gmail: gunakan App Password (bukan password biasa)',
                     'App Password: https://myaccount.google.com/apppasswords',
@@ -77,9 +92,9 @@ app.get('/auth/test-smtp', async (req, res) => {
             });
         }
         return res.status(200).json({
-            ok     : true,
+            ok: true,
             message: `SMTP OK! Terhubung ke ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`,
-            user   : process.env.SMTP_USER
+            user: process.env.SMTP_USER
         });
     });
 });
@@ -174,9 +189,9 @@ app.post('/api/login', async (req, res) => {
             success: true,
             message: 'Login berhasil!',
             user: {
-                id      : user.id,
+                id: user.id,
                 username: user.username,
-                email   : user.email
+                email: user.email
             }
         });
 
@@ -327,10 +342,10 @@ app.post('/auth/forgot-password', async (req, res) => {
 
         console.log(`[DEBUG] 4. Mencoba mengirim email via Nodemailer...`);
         await mailer.sendMail({
-            from   : `"HabitFlow" <${process.env.SMTP_USER}>`,
-            to     : safeEmail,
+            from: `"HabitFlow" <${process.env.SMTP_USER}>`,
+            to: safeEmail,
             subject: '🔑 Reset Kata Sandi HabitFlow Kamu',
-            html   : htmlBody
+            html: htmlBody
         });
 
         console.log(`[DEBUG] 5. ✅ Email reset password BERHASIL terkirim ke: "${safeEmail}"`);
@@ -604,7 +619,7 @@ app.post('/api/habits', async (req, res) => {
 
 // PUT edit habit (ownership check)
 app.put('/api/habits/:id', async (req, res) => {
-    const userId  = req.headers['x-user-id'];
+    const userId = req.headers['x-user-id'];
     const habitId = parseInt(req.params.id, 10);
     const { habit_name, category_id, goals, description, evaluation_type, is_active } = req.body;
 
@@ -624,7 +639,7 @@ app.put('/api/habits/:id', async (req, res) => {
                  evaluation_type = ?, is_active = ?
              WHERE id = ? AND user_id = ?`,
             [habit_name.trim(), category_id, goals || null, description || null,
-             evalType, activeStatus, habitId, userId]
+                evalType, activeStatus, habitId, userId]
         );
 
         if (result.affectedRows === 0) {
@@ -640,7 +655,7 @@ app.put('/api/habits/:id', async (req, res) => {
 
 // DELETE habit (CASCADE otomatis hapus progress_logs)
 app.delete('/api/habits/:id', async (req, res) => {
-    const userId  = req.headers['x-user-id'];
+    const userId = req.headers['x-user-id'];
     const habitId = parseInt(req.params.id, 10);
 
     if (!userId) return res.status(401).json({ success: false, message: 'Tidak terautentikasi.' });
@@ -784,7 +799,7 @@ app.post('/api/progress-logs', async (req, res) => {
 
 // GET riwayat log satu habit
 app.get('/api/progress-logs/:habitId', async (req, res) => {
-    const userId  = req.headers['x-user-id'];
+    const userId = req.headers['x-user-id'];
     const habitId = parseInt(req.params.habitId, 10);
 
     if (!userId) return res.status(401).json({ success: false, message: 'Tidak terautentikasi.' });

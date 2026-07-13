@@ -3,7 +3,7 @@
 // HabitFlow | Backend: Node.js + Express + MySQL (port 3000)
 // ============================================================
 
-const MYSQL_API_BASE = 'http://localhost:3000';
+const MYSQL_API_BASE = '';
 
 // ─────────────────────────────────────────────────────────────
 // HELPER: Ambil user_id dari sesi aktif (MySQL localStorage)

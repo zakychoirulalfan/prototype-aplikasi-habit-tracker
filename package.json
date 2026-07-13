@@ -5,8 +5,31 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "mysql2": "^3.22.5",
+    "mysql2": "^3.22.6",
     "nodemailer": "^9.0.1",
     "tailwindcss": "^4.2.2"
+  },
+  "name": "prototype-aplikasi-habit-tracker",
+  "version": "1.0.0",
+  "description": "PEMBANGUNAN APLIKASI HABIT TRACKER",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zakychoirulalfan/prototype-aplikasi-habit-tracker.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/zakychoirulalfan/prototype-aplikasi-habit-tracker/issues"
+  },
+  "homepage": "https://github.com/zakychoirulalfan/prototype-aplikasi-habit-tracker#readme",
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }

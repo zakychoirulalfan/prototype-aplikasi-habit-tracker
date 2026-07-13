@@ -1,6 +1,6 @@
 // ================================================================
 // app.js — HabitFlow Frontend Core
-// Auth: MySQL backend (http://localhost:3000) + localStorage session
+// Auth: MySQL backend () + localStorage session
 // Supabase: DIHAPUS TOTAL — migrasi ke Full Custom Backend
 // ================================================================
 
@@ -380,7 +380,7 @@ async function handleEmailLogin(event) {
 
     // === Login via Node.js + MySQL ===
     try {
-        const response = await fetch('http://localhost:3000/api/login', {
+        const response = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -471,7 +471,7 @@ async function handleEmailRegister(event) {
 
     try {
         // === Register via MySQL Backend ===
-        const response = await fetch('http://localhost:3000/api/register', {
+        const response = await fetch('/api/register', {
             method : 'POST',
             headers: { 'Content-Type': 'application/json' },
             body   : JSON.stringify({
