@@ -887,8 +887,11 @@ app.get('/api/habits-with-logs', async (req, res) => {
 // START SERVER
 // ================================================================
 const PORT = parseInt(process.env.PORT) || 3000;
-app.listen(PORT, () => {
-    console.log(`🚀 HabitFlow Backend berjalan di http://localhost:${PORT}`);
-    console.log(`📧 SMTP: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
-    console.log(`🗄️  DB  : ${process.env.DB_HOST}/${process.env.DB_NAME}`);
-});
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`🚀 HabitFlow Backend berjalan di http://localhost:${PORT}`);
+        console.log(`📧 SMTP: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
+        console.log(`🗄️  DB  : ${process.env.DB_HOST}/${process.env.DB_NAME}`);
+    });
+}
+module.exports = app;
