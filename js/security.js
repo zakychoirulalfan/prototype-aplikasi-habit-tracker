@@ -579,4 +579,7 @@ async function handleEmailRegister(e) {
         alert('Tidak dapat terhubung ke database. Pastikan kamu sudah menjalankan "node server.js" di terminal VS Code.');
     }
 }
-document.getElementById('register-form').addEventListener('submit', handleEmailRegister);
+const registerForm = document.getElementById('register-form');
+if (registerForm) {
+    registerForm.addEventListener('submit', handleEmailRegister);
+}

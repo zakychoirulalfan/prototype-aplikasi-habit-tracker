@@ -145,7 +145,7 @@
                     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Mengirim...';
 
                     try {
-                        const response = await fetch('http://localhost:3000/auth/forgot-password', {
+                        const response = await fetch('/auth/forgot-password', {
                             method : 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body   : JSON.stringify({ email })
@@ -235,4 +235,4 @@
 
 </body>
 
-</html>
+</html>
