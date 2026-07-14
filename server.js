@@ -24,6 +24,7 @@ const path = require('path');
 app.use('/views', express.static(path.join(__dirname, 'views')));
 app.use('/css', express.static(path.join(__dirname, 'css')));
 app.use('/js', express.static(path.join(__dirname, 'js')));
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 // Redirect otomatis ke index.html saat web pertama kali dibuka
 app.get('/', (req, res) => {
