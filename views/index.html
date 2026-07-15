@@ -177,90 +177,21 @@
             </div>
         </section>
 
-        <!-- Habits List -->
+        <!-- Habits List (identik dengan section habit di halaman Calendar) -->
         <section class="mt-8 px-6 animate-slide-up delay-200 w-full relative z-20" style="overflow: visible; background: linear-gradient(180deg, transparent 0%, var(--bg-color) 60%);">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-gray-800">Your Habits</h3>
-                <button id="select-mode-btn" onclick="toggleSelectMode()" class="text-sm text-emerald-600 font-semibold focus:outline-none theme-text-update">Select Multiple</button>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-gray-900" id="home-date-text">Today</h3>
+                <div id="home-sync-indicator" class="hidden flex items-center gap-1.5">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-500">Live</span>
+                </div>
             </div>
-            
-            <!-- Habits list -->
+
+            <!-- Habits list — diisi otomatis dari MySQL, format sama seperti halaman Calendar -->
             <div class="pb-8" id="habit-list">
-                <!-- Card Pembungkus Utama -->
-                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-4">
-                
-                <!-- Contoh Habit 1 (Sudah Selesai) -->
-                <div class="flex items-center justify-between gap-2">
-                    <!-- Kolom Kiri: Info & Streak -->
-                    <div class="flex items-center gap-3 min-w-0 flex-1">
-                    <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center text-lg shrink-0">
-                        <i class="fa-solid fa-book"></i>
-                    </div>
-                    <div class="min-w-0">
-                        <h3 class="font-bold text-sm text-gray-800 truncate">Read 10 Pages</h3>
-                        <div class="flex items-center gap-1.5 text-[10px] font-medium text-gray-500 mt-0.5">
-                        <span class="flex items-center gap-1 text-orange-500"><i class="fa-solid fa-fire"></i> 12 Days</span>
-                        <span class="text-gray-300">|</span>
-                        <span>100%</span>
-                        </div>
-                    </div>
-                    </div>
-
-                    <!-- Kolom Tengah: Statistik Mingguan -->
-                    <div class="shrink-0 flex items-center gap-1.5">
-                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> <!-- Senin -->
-                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> <!-- Selasa -->
-                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> <!-- Rabu -->
-                    <div class="w-2.5 h-2.5 rounded-full bg-gray-200"></div>     <!-- Kamis -->
-                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> <!-- Jumat -->
-                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> <!-- Sabtu -->
-                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> <!-- Minggu (Hari Ini - Selesai) -->
-                    </div>
-
-                    <!-- Kolom Kanan: Tombol Aksi (Tencentang) -->
-                    <div class="shrink-0 pl-1">
-                    <button class="w-8 h-8 rounded-full border-2 border-emerald-500 bg-emerald-500 text-white flex items-center justify-center transition-colors">
-                        <i class="fa-solid fa-check text-xs"></i>
-                    </button>
-                    </div>
-                </div>
-
-                <!-- Contoh Habit 2 (Belum Selesai) -->
-                <div class="flex items-center justify-between gap-2">
-                    <!-- Kolom Kiri: Info & Streak -->
-                    <div class="flex items-center gap-3 min-w-0 flex-1">
-                    <div class="w-10 h-10 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center text-lg shrink-0">
-                        <i class="fa-solid fa-person-running"></i>
-                    </div>
-                    <div class="min-w-0">
-                        <h3 class="font-bold text-sm text-gray-800 truncate">Morning Run</h3>
-                        <div class="flex items-center gap-1.5 text-[10px] font-medium text-gray-500 mt-0.5">
-                        <span class="flex items-center gap-1 text-orange-500"><i class="fa-solid fa-fire"></i> 5 Days</span>
-                        <span class="text-gray-300">|</span>
-                        <span>85%</span>
-                        </div>
-                    </div>
-                    </div>
-
-                    <!-- Kolom Tengah: Statistik Mingguan -->
-                    <div class="shrink-0 flex items-center gap-1.5">
-                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> <!-- Senin -->
-                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> <!-- Selasa -->
-                    <div class="w-2.5 h-2.5 rounded-full bg-gray-200"></div>     <!-- Rabu -->
-                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> <!-- Kamis -->
-                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> <!-- Jumat -->
-                    <div class="w-2.5 h-2.5 rounded-full bg-gray-200"></div>     <!-- Sabtu -->
-                    <div class="w-2.5 h-2.5 rounded-full bg-gray-200"></div>     <!-- Minggu (Hari Ini - Belum) -->
-                    </div>
-
-                    <!-- Kolom Kanan: Tombol Aksi (Kosong) -->
-                    <div class="shrink-0 pl-1">
-                    <button class="w-8 h-8 rounded-full border-2 border-gray-300 text-transparent flex items-center justify-center transition-colors">
-                        <i class="fa-solid fa-check text-xs"></i>
-                    </button>
-                    </div>
-                </div>
-
+                <div class="flex items-center justify-center gap-2 py-10 text-gray-400">
+                    <i class="fa-solid fa-spinner fa-spin"></i>
+                    <span class="text-sm">Memuat data...</span>
                 </div>
             </div>
         </section>
@@ -299,37 +230,6 @@
         </a>
     </nav>
 
-    <!-- Select Mode Action Bar (Hidden by default) -->
-    <div id="select-action-bar"
-        class="fixed bottom-24 left-1/2 -translate-x-1/2 bg-white px-6 py-3 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100 flex items-center justify-between gap-6 z-50 transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none w-11/12 max-w-sm">
-        <span class="text-gray-700 font-bold text-sm"><span id="selected-count">0</span> Selected</span>
-        <button onclick="confirmDeletion()"
-            class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm focus:outline-none">
-            <i class="fa-solid fa-trash mr-1.5"></i>Delete
-        </button>
-    </div>
-
-    <!-- Delete Confirmation Modal (Hidden by default) -->
-    <div id="delete-confirm-modal"
-        class="fixed inset-0 bg-gray-900/40 z-[60] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 px-6 backdrop-blur-sm">
-        <div
-            class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 popup-content">
-            <div
-                class="w-14 h-14 rounded-full bg-red-50 text-red-500 flex items-center justify-center text-2xl mb-4 mx-auto">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-            </div>
-            <h3 class="text-xl font-bold text-gray-900 text-center mb-2">Delete Habits</h3>
-            <p class="text-gray-500 text-center text-sm mb-6">Are you sure you want to delete the selected habits? This
-                action cannot be undone.</p>
-            <div class="flex gap-3">
-                <button onclick="closeDeleteModal()"
-                    class="flex-1 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors">Cancel</button>
-                <button onclick="executeDeletion()"
-                    class="flex-1 py-3.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl shadow-[0_4px_14px_0_rgba(239,68,68,0.39)] transition-colors">Continue</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Achievements Bottom Sheet Modal (Hidden by default) -->
     <div id="achievements-modal"
         class="fixed inset-0 bg-gray-900/40 z-[70] flex items-end justify-center opacity-0 pointer-events-none transition-opacity duration-300 backdrop-blur-sm"
@@ -349,6 +249,8 @@
             </div>
         </div>
     </div>
+    <!-- PENTING: mysql-api.js WAJIB dimuat sebelum habits.js & app.js, sama seperti di calendar.html -->
+    <script src="../js/mysql-api.js"></script>
     <script src="../js/habits.js"></script>
     <script src="../js/app.js"></script>
     <script src="../js/notifications.js"></script>
@@ -371,6 +273,90 @@
                 } else {
                     heroShadow.style.boxShadow = '0 20px 25px -5px rgba(16, 185, 129, 0.25), 0 8px 10px -6px rgba(16, 185, 129, 0.25)';
                 }
+            }
+        }
+
+        // ─── Sinkronisasi habit dari MySQL, ditampilkan sebagai tabel ───
+        // Sama persis dengan syncMysqlForDate() di halaman Calendar (fetchHabitsWithLogs +
+        // renderSyncedHabits dengan context 'calendar'), termasuk judul tanggal & indikator
+        // Live, sehingga Home dan Calendar identik dan konsisten (single source of truth).
+        async function syncHomeHabitsForDate(dateStr) {
+            const habitList = document.getElementById('habit-list');
+            const syncIndicator = document.getElementById('home-sync-indicator');
+            const dateTextEl = document.getElementById('home-date-text');
+            if (!habitList) return;
+
+            if (dateTextEl) {
+                const dateObj = new Date(dateStr + 'T00:00:00');
+                dateTextEl.textContent = dateObj.toLocaleDateString('id-ID', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+            }
+
+            if (typeof fetchHabitsWithLogs !== 'function') {
+                habitList.innerHTML = `
+                    <div class="text-center py-8 text-gray-400">
+                        <i class="fa-solid fa-triangle-exclamation text-2xl mb-2"></i>
+                        <p class="text-sm">mysql-api.js belum dimuat.</p>
+                    </div>`;
+                return;
+            }
+
+            syncIndicator && syncIndicator.classList.remove('hidden');
+
+            // Redupkan konten lama (bukan diganti spinner) agar transisi terasa halus,
+            // bukan "kedip" mendadak saat data baru masuk.
+            habitList.style.transition = 'opacity 0.15s ease';
+            habitList.style.opacity = '0.35';
+
+            // Kalau fetch ternyata lambat (>350ms), baru tampilkan spinner supaya
+            // user tahu masih memuat — tapi tidak muncul untuk fetch yang cepat.
+            let showedSpinner = false;
+            const spinnerTimeout = setTimeout(() => {
+                showedSpinner = true;
+                habitList.innerHTML = `
+                    <div class="flex items-center justify-center gap-2 py-6 text-gray-400">
+                        <i class="fa-solid fa-spinner fa-spin"></i>
+                        <span class="text-sm">Memuat data...</span>
+                    </div>`;
+                habitList.style.opacity = '1';
+            }, 350);
+
+            try {
+                const result = await fetchHabitsWithLogs(dateStr);
+                clearTimeout(spinnerTimeout);
+
+                if (result.success && result.habits.length > 0) {
+                    renderSyncedHabits('habit-list', result.habits, dateStr, 'calendar');
+                } else if (result.success && result.habits.length === 0) {
+                    habitList.innerHTML = `
+                        <div class="text-center py-8 text-gray-400">
+                            <i class="fa-solid fa-calendar-xmark text-2xl mb-2"></i>
+                            <p class="text-sm font-medium">Belum ada habit untuk tanggal ini.</p>
+                            <p class="text-xs mt-1">Tambahkan habit melalui tombol + di bawah.</p>
+                        </div>`;
+                } else {
+                    habitList.innerHTML = `
+                        <div class="text-center py-8 text-gray-400">
+                            <i class="fa-solid fa-server text-2xl mb-2"></i>
+                            <p class="text-sm">${result.message || 'Gagal memuat data. Pastikan sudah login.'}</p>
+                        </div>`;
+                }
+
+                // Fade konten baru masuk secara halus.
+                habitList.style.opacity = '0';
+                requestAnimationFrame(() => {
+                    habitList.style.opacity = '1';
+                });
+            } catch (err) {
+                clearTimeout(spinnerTimeout);
+                console.warn('syncHomeHabitsForDate error:', err);
+                habitList.innerHTML = `
+                    <div class="text-center py-8 text-red-400">
+                        <i class="fa-solid fa-triangle-exclamation text-2xl mb-2"></i>
+                        <p class="text-sm">Tidak dapat terhubung ke server.</p>
+                    </div>`;
+                habitList.style.opacity = '1';
+            } finally {
+                syncIndicator && syncIndicator.classList.add('hidden');
             }
         }
 
@@ -430,12 +416,24 @@
                 }
             }
 
-            // Sync habits from Supabase, then render
+            // Sync habits dari MySQL & render dalam format tabel (sama seperti Calendar)
             await syncHabitsFromSupabase();
-            renderHomeHabits();
+            await syncHomeHabitsForDate(getLocalDateString());
             updateShadows(document.documentElement.getAttribute('data-theme') || 'green');
             // Red dots on date slider
             setTimeout(() => renderHomeDateRedDots(), 300);
+
+            // Saat user memilih tanggal lain di date slider, refresh tabel habit
+            // untuk tanggal tersebut (sama seperti klik tanggal di Calendar).
+            const dateSliderEl = document.getElementById('mobile-date-selector');
+            if (dateSliderEl) {
+                dateSliderEl.addEventListener('click', (e) => {
+                    const card = e.target.closest('.date-card');
+                    if (card && card.dataset.date) {
+                        syncHomeHabitsForDate(card.dataset.date);
+                    }
+                });
+            }
 
             // Update Hero Status Card
             function updateHeroCard() {
