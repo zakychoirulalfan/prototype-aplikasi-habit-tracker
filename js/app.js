@@ -295,24 +295,61 @@ function handleRouteProtection() {
         || currentPath.includes('intro.html')
         || currentPath.includes('reset-password.html');
     const isAdminRoute = currentPath.includes('admin_dashboard.html');
+    const isIndexRoute = currentPath.endsWith('/') || currentPath.includes('index.html');
     const isAdmin = localStorage.getItem('isAdmin') === 'true';
 
-    // Session dari MySQL login (disimpan saat /api/login berhasil)
-    const mysqlUser = localStorage.getItem('currentUser');
+    // Parse MySQL session carefully (avoiding 'null' string bugs)
+    let mysqlUser = null;
+    try {
+        const rawUser = localStorage.getItem('currentUser');
+        if (rawUser && rawUser !== 'null' && rawUser !== 'undefined') {
+            mysqlUser = JSON.parse(rawUser);
+        }
+    } catch (e) {
+        console.error('Invalid user data in localStorage, clearing it.');
+        localStorage.removeItem('currentUser');
+    }
+
     const isLoggedIn = !!mysqlUser || isAdmin;
 
-    if (isAdminRoute) {
-        if (!isAdmin) window.location.href = 'login.html';
-        return;
+    // --- Task 3: Clear stale auth data when on login/intro ---
+    if (isPublicRoute && !isLoggedIn) {
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('isAdmin');
     }
 
-    if (!isLoggedIn && !isPublicRoute) {
+    // --- Task 1: Strict Auth Guard ---
+    if (isAdminRoute) {
+        if (!isAdmin) {
+            window.location.replace('login.html');
+            return;
+        }
+    } else if (!isLoggedIn && !isPublicRoute) {
+        // If not logged in and trying to access a protected route (like index.html)
         const introSeen = localStorage.getItem('introSeen') === 'true';
-        window.location.href = introSeen ? 'login.html' : 'intro.html';
+        window.location.replace(introSeen ? 'login.html' : 'intro.html');
+        return; // Stop execution here
     } else if (isLoggedIn && isPublicRoute && !isAdminRoute) {
-        window.location.href = isAdmin ? 'admin_dashboard.html' : 'index.html';
+        // Logged in but trying to access login/register
+        window.location.replace(isAdmin ? 'admin_dashboard.html' : 'index.html');
+        return; // Stop execution here
+    }
+
+    // --- Task 2: Hide Loading Spinner if Auth is Successful ---
+    // At this point, the user is authorized to view the current page.
+    // If we have an auth-guard-loader overlay, safely remove it to reveal the page.
+    const authLoader = document.getElementById('auth-guard-loader');
+    if (authLoader) {
+        // Fade out
+        authLoader.style.opacity = '0';
+        setTimeout(() => {
+            if (authLoader.parentNode) {
+                authLoader.parentNode.removeChild(authLoader);
+            }
+        }, 300); // Wait for CSS transition (duration-300)
     }
 }
+
 
 async function handleEmailLogin(event) {
     event.preventDefault();

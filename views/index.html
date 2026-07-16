@@ -34,6 +34,13 @@
 
 <body class="font-sans h-screen flex flex-col relative overflow-hidden bg-white">
 
+    <!-- AUTHENTICATION GUARD LOADER (Task 2) -->
+    <!-- Covers the screen by default to prevent "Loading..." flash. Removed by handleRouteProtection() if authenticated. -->
+    <div id="auth-guard-loader" class="fixed inset-0 bg-white z-[99999] flex flex-col items-center justify-center transition-opacity duration-300">
+        <i class="fa-solid fa-circle-notch fa-spin text-4xl text-[var(--primary)] text-green-500 mb-4"></i>
+        <p class="text-gray-500 font-medium tracking-wide">Verifying Session...</p>
+    </div>
+
     <main class="flex-1 overflow-y-auto pb-24 relative z-10 no-scrollbar">
         <!-- Deep immersive background gradient matching reference UI -->
         <div id="theme-bg-gradient"

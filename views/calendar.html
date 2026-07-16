@@ -21,6 +21,12 @@
     </script>
 </head>
 <body class="pb-24 bg-gray-50">
+    <!-- AUTHENTICATION GUARD LOADER -->
+    <div id="auth-guard-loader" class="fixed inset-0 bg-white z-[99999] flex flex-col items-center justify-center transition-opacity duration-300">
+        <i class="fa-solid fa-circle-notch fa-spin text-4xl text-[var(--primary)] text-green-500 mb-4"></i>
+        <p class="text-gray-500 font-medium tracking-wide">Verifying Session...</p>
+    </div>
+
 
     <!-- Header -->
     <header class="px-6 pt-8 pb-4 flex items-center animate-slide-up relative z-10">
