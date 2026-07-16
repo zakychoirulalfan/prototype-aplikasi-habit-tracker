@@ -788,22 +788,46 @@ app.delete('/api/admin/feedback/:id', adminAuth, async (req, res) => {
 app.get('/api/admin/users', adminAuth, async (req, res) => {
     try {
         const dbPromise = db.promise();
+
+        // ── Self-healing query: check if 'status' column exists first ──
+        // This prevents a hard crash if migrate_add_admin.sql was not yet run on TiDB.
+        let hasStatusCol = false;
+        try {
+            const [cols] = await dbPromise.query(
+                `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME   = 'users'
+                   AND COLUMN_NAME  = 'status'`
+            );
+            hasStatusCol = cols.length > 0;
+        } catch (colErr) {
+            console.warn('⚠️ Could not check schema, assuming no status column:', colErr.message);
+        }
+
+        const statusExpr = hasStatusCol ? 'status' : "'active' AS status";
+
         const [rows] = await dbPromise.query(
             `SELECT
                 id          AS user_id,
                 username,
                 email       AS email_address,
-                status,
+                ${statusExpr},
                 created_at
              FROM users
              ORDER BY created_at DESC`
         );
+
+        console.log(`✅ Admin: fetched ${rows.length} users (status column exists: ${hasStatusCol})`);
         return res.status(200).json({ success: true, count: rows.length, users: rows });
     } catch (err) {
-        console.error('❌ Admin GET users error:', err);
+        // Log full error server-side, return safe message to client
+        console.error('❌ Admin GET users error — SQL:', err.sqlMessage || err.message);
+        console.error('❌ Admin GET users error — Code:', err.code);
+        console.error('❌ Full error:', err);
         return res.status(500).json({ success: false, message: 'Gagal mengambil data user.' });
     }
 });
+
 
 // PATCH status user (ban / unban)
 app.patch('/api/admin/users/:id/status', adminAuth, async (req, res) => {

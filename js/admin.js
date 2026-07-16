@@ -109,7 +109,6 @@ async function apiFetch(endpoint, options) {
         'Content-Type': 'application/json',
         'x-admin-key': key
     };
-    // Merge any extra headers
     if (options.headers) {
         Object.assign(headers, options.headers);
     }
@@ -120,16 +119,29 @@ async function apiFetch(endpoint, options) {
         headers: headers
     });
 
-    console.log('[Admin] API', options.method || 'GET', endpoint, '→', res.status);
+    console.log('[Admin] API', options.method || 'GET', endpoint, '→ HTTP', res.status);
 
     if (res.status === 403) {
         localStorage.removeItem(ADMIN_KEY);
         showToast('Sesi admin habis. Silakan login ulang.', 'error');
         setTimeout(function () { window.location.replace('login.html'); }, 1500);
-        throw new Error('Forbidden');
+        throw new Error('Forbidden (403)');
     }
 
-    return res.json();
+    // Parse JSON — log full body on error for easier debugging
+    var json;
+    try {
+        json = await res.json();
+    } catch (parseErr) {
+        console.error('[Admin] Failed to parse JSON from', endpoint, '— status:', res.status);
+        throw new Error('Server returned non-JSON (HTTP ' + res.status + ')');
+    }
+
+    if (!res.ok && !json.success) {
+        console.error('[Admin] API error response from', endpoint + ':', json);
+    }
+
+    return json;
 }
 
 // ─── 7. TOAST ────────────────────────────────────────────────────
