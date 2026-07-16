@@ -681,6 +681,263 @@ app.delete('/api/habits/:id', async (req, res) => {
 });
 
 // ================================================================
+// TASK 2: DELETE semua habit milik satu user (bulk delete)
+//   DELETE /api/habits/user/:owner_id
+//   Header: X-User-Id (harus sama dengan owner_id untuk security)
+// NOTE: Harus didaftarkan SEBELUM DELETE /api/habits/:id agar
+//       Express tidak salah parse 'user' sebagai :id
+// ================================================================
+app.delete('/api/habits/user/:owner_id', async (req, res) => {
+    const userId = req.headers['x-user-id'];
+    const ownerId = parseInt(req.params.owner_id, 10);
+
+    if (!userId) return res.status(401).json({ success: false, message: 'Tidak terautentikasi.' });
+    // Security: user hanya boleh menghapus milik dirinya sendiri
+    if (String(userId) !== String(ownerId)) {
+        return res.status(403).json({ success: false, message: 'Akses ditolak.' });
+    }
+
+    try {
+        const dbPromise = db.promise();
+        const [result] = await dbPromise.query(
+            'DELETE FROM habits WHERE user_id = ?',
+            [ownerId]
+        );
+        console.log(`✅ Bulk delete: ${result.affectedRows} habit dihapus untuk user_id=${ownerId}`);
+        return res.status(200).json({
+            success: true,
+            deleted_count: result.affectedRows,
+            message: `${result.affectedRows} habit berhasil dihapus.`
+        });
+    } catch (err) {
+        console.error('❌ Bulk delete habits error:', err);
+        return res.status(500).json({ success: false, message: 'Gagal menghapus semua habit.' });
+    }
+});
+
+// ================================================================
+// ADMIN MIDDLEWARE — Melindungi semua route /api/admin/*
+// Header wajib: X-Admin-Key: <nilai ADMIN_SECRET_KEY di .env>
+// ================================================================
+const adminAuth = (req, res, next) => {
+    const key = req.headers['x-admin-key'];
+    if (!key || key !== process.env.ADMIN_SECRET_KEY) {
+        return res.status(403).json({ success: false, message: 'Akses Admin Ditolak.' });
+    }
+    next();
+};
+
+// ================================================================
+// TASK 3: ENDPOINT — Admin Feedback
+//   GET    /api/admin/feedback        — Ambil semua feedback
+//   DELETE /api/admin/feedback/:id    — Hapus satu feedback
+// ================================================================
+
+// GET semua feedback (join dengan username)
+app.get('/api/admin/feedback', adminAuth, async (req, res) => {
+    try {
+        const dbPromise = db.promise();
+        const [rows] = await dbPromise.query(
+            `SELECT
+                af.id,
+                af.rating,
+                af.comments  AS feedback_comment,
+                af.source,
+                af.created_at AS date_submitted,
+                u.username,
+                u.email
+             FROM app_feedback af
+             LEFT JOIN users u ON af.user_id = u.id
+             ORDER BY af.created_at DESC`
+        );
+        return res.status(200).json({ success: true, count: rows.length, feedback: rows });
+    } catch (err) {
+        console.error('❌ Admin GET feedback error:', err);
+        return res.status(500).json({ success: false, message: 'Gagal mengambil data feedback.' });
+    }
+});
+
+// DELETE satu feedback by ID
+app.delete('/api/admin/feedback/:id', adminAuth, async (req, res) => {
+    const feedbackId = parseInt(req.params.id, 10);
+    if (isNaN(feedbackId)) return res.status(400).json({ success: false, message: 'ID tidak valid.' });
+
+    try {
+        const dbPromise = db.promise();
+        const [result] = await dbPromise.query(
+            'DELETE FROM app_feedback WHERE id = ?', [feedbackId]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'Feedback tidak ditemukan.' });
+        }
+        return res.status(200).json({ success: true, message: 'Feedback berhasil dihapus.' });
+    } catch (err) {
+        console.error('❌ Admin DELETE feedback error:', err);
+        return res.status(500).json({ success: false, message: 'Gagal menghapus feedback.' });
+    }
+});
+
+// ================================================================
+// TASK 4A: ENDPOINT — Admin Users Management
+//   GET   /api/admin/users            — Daftar semua user
+//   PATCH /api/admin/users/:id/status — Ban / Unban user
+//   DELETE /api/admin/users/:id       — Hapus user (CASCADE habits)
+// ================================================================
+
+// GET semua user
+app.get('/api/admin/users', adminAuth, async (req, res) => {
+    try {
+        const dbPromise = db.promise();
+        const [rows] = await dbPromise.query(
+            `SELECT
+                id          AS user_id,
+                username,
+                email       AS email_address,
+                status,
+                created_at
+             FROM users
+             ORDER BY created_at DESC`
+        );
+        return res.status(200).json({ success: true, count: rows.length, users: rows });
+    } catch (err) {
+        console.error('❌ Admin GET users error:', err);
+        return res.status(500).json({ success: false, message: 'Gagal mengambil data user.' });
+    }
+});
+
+// PATCH status user (ban / unban)
+app.patch('/api/admin/users/:id/status', adminAuth, async (req, res) => {
+    const userId = parseInt(req.params.id, 10);
+    const { status } = req.body;
+
+    if (isNaN(userId)) return res.status(400).json({ success: false, message: 'ID user tidak valid.' });
+    if (!['active', 'banned'].includes(status)) {
+        return res.status(400).json({ success: false, message: 'Status harus \'active\' atau \'banned\'.' });
+    }
+
+    try {
+        const dbPromise = db.promise();
+        const [result] = await dbPromise.query(
+            'UPDATE users SET status = ? WHERE id = ?', [status, userId]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'User tidak ditemukan.' });
+        }
+        console.log(`✅ Admin: user_id=${userId} status diubah ke '${status}'`);
+        return res.status(200).json({ success: true, message: `User berhasil di-${status === 'banned' ? 'ban' : 'unban'}.` });
+    } catch (err) {
+        console.error('❌ Admin PATCH user status error:', err);
+        return res.status(500).json({ success: false, message: 'Gagal mengubah status user.' });
+    }
+});
+
+// DELETE user beserta semua datanya (ON DELETE CASCADE berlaku)
+app.delete('/api/admin/users/:id', adminAuth, async (req, res) => {
+    const userId = parseInt(req.params.id, 10);
+    if (isNaN(userId)) return res.status(400).json({ success: false, message: 'ID user tidak valid.' });
+
+    try {
+        const dbPromise = db.promise();
+        const [result] = await dbPromise.query(
+            'DELETE FROM users WHERE id = ?', [userId]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'User tidak ditemukan.' });
+        }
+        console.log(`✅ Admin: user_id=${userId} dihapus beserta semua datanya.`);
+        return res.status(200).json({ success: true, message: 'User dan semua data terkait berhasil dihapus.' });
+    } catch (err) {
+        console.error('❌ Admin DELETE user error:', err);
+        return res.status(500).json({ success: false, message: 'Gagal menghapus user.' });
+    }
+});
+
+// ================================================================
+// TASK 4B: ENDPOINT — Admin Habits Management
+//   GET    /api/admin/habits      — Semua habit + email pemilik
+//   DELETE /api/admin/habits/:id  — Admin hapus habit manapun
+// ================================================================
+
+// GET semua habit dengan email pemiliknya
+app.get('/api/admin/habits', adminAuth, async (req, res) => {
+    try {
+        const dbPromise = db.promise();
+        const [rows] = await dbPromise.query(
+            `SELECT
+                h.id          AS habit_id,
+                h.habit_name  AS habit_detail,
+                c.name        AS category,
+                h.is_active,
+                h.created_at  AS created_on,
+                u.id          AS owner_id,
+                u.username,
+                u.email       AS owner_email
+             FROM habits h
+             JOIN users u ON h.user_id = u.id
+             JOIN categories c ON h.category_id = c.id
+             ORDER BY h.created_at DESC`
+        );
+        return res.status(200).json({ success: true, count: rows.length, habits: rows });
+    } catch (err) {
+        console.error('❌ Admin GET habits error:', err);
+        return res.status(500).json({ success: false, message: 'Gagal mengambil data habit.' });
+    }
+});
+
+// DELETE habit apapun by admin
+app.delete('/api/admin/habits/:id', adminAuth, async (req, res) => {
+    const habitId = parseInt(req.params.id, 10);
+    if (isNaN(habitId)) return res.status(400).json({ success: false, message: 'ID habit tidak valid.' });
+
+    try {
+        const dbPromise = db.promise();
+        const [result] = await dbPromise.query(
+            'DELETE FROM habits WHERE id = ?', [habitId]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'Habit tidak ditemukan.' });
+        }
+        console.log(`✅ Admin: habit_id=${habitId} dihapus.`);
+        return res.status(200).json({ success: true, message: 'Habit berhasil dihapus oleh admin.' });
+    } catch (err) {
+        console.error('❌ Admin DELETE habit error:', err);
+        return res.status(500).json({ success: false, message: 'Gagal menghapus habit.' });
+    }
+});
+
+// ================================================================
+// TASK 4C: ENDPOINT — Admin Overview Dashboard
+//   GET /api/admin/overview
+//   Returns: total_users, total_habits, feedback_items, avg_rating
+// ================================================================
+app.get('/api/admin/overview', adminAuth, async (req, res) => {
+    try {
+        const dbPromise = db.promise();
+        // Single optimized query using subqueries for minimal DB round-trips
+        const [rows] = await dbPromise.query(
+            `SELECT
+                (SELECT COUNT(*) FROM users)                             AS total_users,
+                (SELECT COUNT(*) FROM habits)                            AS total_habits,
+                (SELECT COUNT(*) FROM app_feedback)                      AS feedback_items,
+                (SELECT ROUND(AVG(rating), 1) FROM app_feedback)         AS avg_rating`
+        );
+        const overview = rows[0];
+        return res.status(200).json({
+            success: true,
+            overview: {
+                total_users:    parseInt(overview.total_users, 10),
+                total_habits:   parseInt(overview.total_habits, 10),
+                feedback_items: parseInt(overview.feedback_items, 10),
+                avg_rating:     parseFloat(overview.avg_rating) || 0
+            }
+        });
+    } catch (err) {
+        console.error('❌ Admin overview error:', err);
+        return res.status(500).json({ success: false, message: 'Gagal mengambil data overview.' });
+    }
+});
+
+// ================================================================
 // 10. ENDPOINT: Progress Logs (Pengganti habit_logs)
 //     POST /api/progress-logs/toggle   — Toggle checklist (ON/OFF)
 //     POST /api/progress-logs          — Simpan nilai numeric/timer
