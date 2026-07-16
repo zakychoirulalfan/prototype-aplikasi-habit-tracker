@@ -57,12 +57,22 @@ async function initAdmin() {
 
 // ─── 4. LOGOUT ───────────────────────────────────────────────────
 // Called by onclick="handleAdminLogout()" — works on desktop AND mobile
-function handleAdminLogout() {
+function handleAdminLogout(e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
     console.log('[Admin] Logout triggered');
+    
+    // Clear Admin Key
     localStorage.removeItem(ADMIN_KEY);
+    // Clear global app.js admin state
+    localStorage.removeItem('isAdmin');
+    localStorage.removeItem('currentUser'); // Just to be safe
     sessionStorage.clear();
+    
     // replace() prevents back-button returning to admin panel
-    window.location.replace('login.html');
+    window.location.replace('intro.html');
 }
 
 // ─── 5. TAB SWITCHING ────────────────────────────────────────────
