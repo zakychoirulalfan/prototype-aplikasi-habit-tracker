@@ -173,7 +173,7 @@ window.showToast = function (message, type = 'success') {
     if (!container) {
         container = document.createElement('div');
         container.id = 'toast-container';
-        container.className = 'fixed top-safe pt-4 left-1/2 -translate-x-1/2 z-[99999] flex flex-col items-center gap-3 pointer-events-none w-full max-w-[95vw] sm:max-w-md px-2 sm:px-4';
+        container.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-3 pointer-events-none w-[90%] max-w-sm';
         document.body.appendChild(container);
     }
 

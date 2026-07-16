@@ -22,33 +22,67 @@
     </script>
 </head>
 
-<body class="font-sans h-screen flex flex-col bg-white overflow-hidden relative">
+<body class="pb-24 bg-gray-50 min-h-screen flex flex-col relative overflow-y-auto overflow-x-hidden">
+
     <!-- AUTHENTICATION GUARD LOADER -->
     <div id="auth-guard-loader" class="fixed inset-0 bg-white z-[99999] flex flex-col items-center justify-center transition-opacity duration-300">
         <i class="fa-solid fa-circle-notch fa-spin text-4xl text-[var(--primary)] text-green-500 mb-4"></i>
         <p class="text-gray-500 font-medium tracking-wide">Verifying Session...</p>
     </div>
 
+    <!-- Header -->
+    <header class="px-6 pt-8 pb-4 flex justify-between items-center animate-slide-up relative z-10">
+        <h1 class="text-2xl font-bold text-white">Profile</h1>
+    </header>
 
-    
-                <div
-                    class="absolute bottom-0 right-0 bg-[var(--primary)] text-white w-8 h-8 rounded-full flex items-center justify-center border-2 border-white shadow-sm hover:scale-110 transition-transform">
+    <!-- Profile Section -->
+    <section class="px-6 mt-4 animate-slide-up delay-100">
+        <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col items-center justify-center space-y-2">
+
+            <!-- Avatar Container -->
+            <div class="relative group transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+                onclick="document.getElementById('avatar-input').click()">
+                
+                <!-- Skeleton Loader -->
+                <div id="avatar-skeleton" class="w-24 h-24 rounded-full border-4 border-white shadow-lg bg-gray-200 animate-pulse absolute inset-0 z-10"></div>
+
+                <!-- Actual Avatar -->
+                <div class="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg relative z-20 opacity-0 transition-opacity duration-300" id="avatar-wrapper">
+                    <img id="profile-img" src="../assets/defaultphoto.png" alt="Profile"
+                        class="w-full h-full object-cover">
+                    <!-- Loading indicator saat upload -->
+                    <div id="avatar-loading"
+                        class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 transition-opacity duration-300 hidden">
+                        <i class="fa-solid fa-spinner fa-spin text-white text-2xl"></i>
+                    </div>
+                </div>
+                
+                <div class="absolute bottom-0 right-0 z-30 bg-[var(--primary)] text-white w-8 h-8 rounded-full flex items-center justify-center border-2 border-white shadow-sm hover:scale-110 transition-transform">
                     <i class="fa-solid fa-camera text-xs"></i>
                 </div>
             </div>
-            <!-- Tambahkan ini setelah div foto profil -->
+            
             <input type="file" id="avatar-input" accept="image/*" class="hidden">
 
-            <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2 mt-2">
-                <span id="display-username">Loading...</span>
-                <i class="fa-solid fa-circle-check text-blue-500 text-sm"></i>
-            </h2>
-            <p class="text-sm text-gray-500 font-medium mt-1" id="display-email">loading...</p>
+            <!-- Name and Email Skeletons -->
+            <div id="text-skeleton" class="flex flex-col items-center space-y-2 w-full mt-2">
+                <div class="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
+                <div class="h-4 w-48 bg-gray-200 rounded animate-pulse"></div>
+            </div>
 
-            <span id="auth-badge"
-                class="mt-3 px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold flex items-center gap-1">
-                <i class="fa-solid fa-envelope text-sm mt-px"></i> Email Authenticated
-            </span>
+            <!-- Actual Name and Email -->
+            <div id="text-content" class="flex flex-col items-center hidden">
+                <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2 mt-2">
+                    <span id="display-username">Loading...</span>
+                    <i class="fa-solid fa-circle-check text-blue-500 text-sm"></i>
+                </h2>
+                <p class="text-sm text-gray-500 font-medium mt-1" id="display-email">loading...</p>
+
+                <span id="auth-badge"
+                    class="mt-3 px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold flex items-center gap-1">
+                    <i class="fa-solid fa-envelope text-sm mt-px"></i> Email Authenticated
+                </span>
+            </div>
         </div>
     </section>  
 
@@ -588,38 +622,56 @@
         document.addEventListener('DOMContentLoaded', async () => {
             // Load user dari localStorage MySQL session
             const storedUser = localStorage.getItem('currentUser');
-            if (storedUser) {
+            
+            // Simulasikan delay sedikit agar skeleton terlihat (opsional, bisa dihapus)
+            setTimeout(() => {
+                let user = null;
                 try {
-                    const user = JSON.parse(storedUser);
-                    _currentUser = user;
-
-                    const name  = user.fullName || user.username || 'User';
-                    const email = user.email || '-';
-
-                    document.getElementById('display-username').innerText = name;
-                    document.getElementById('display-email').innerText = email;
-
-                    // Avatar: cek localStorage cache, fallback ke ui-avatars.com
-                    const savedAvatar = localStorage.getItem('avatarDataUrl');
-                    const profileImg  = document.getElementById('profile-img');
-                    if (savedAvatar) {
-                        profileImg.src = savedAvatar;
-                    } else {
-                        profileImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=10B981&color=fff&bold=true`;
-                    }
-
-                    // Auth badge — semua via email sekarang
-                    const badge = document.getElementById('auth-badge');
-                    if (badge) {
-                        badge.innerHTML = '<i class="fa-solid fa-database text-sm mt-px"></i> MySQL Authenticated';
+                    if (storedUser) {
+                        user = JSON.parse(storedUser);
+                        _currentUser = user;
                     }
                 } catch (parseErr) {
                     console.error('Error parsing currentUser:', parseErr);
-                    showToast('Gagal memuat profil. Silakan login ulang.', 'error');
                 }
-            } else {
-                showToast('Sesi tidak ditemukan. Silakan login kembali.', 'error');
-            }
+
+                // Fallback rendering
+                const name  = user?.fullName || user?.username || 'Guest';
+                const email = user?.email || '-';
+
+                document.getElementById('display-username').innerText = name;
+                document.getElementById('display-email').innerText = email;
+
+                // Avatar: cek localStorage cache, fallback ke ui-avatars.com
+                const savedAvatar = localStorage.getItem('avatarDataUrl');
+                const profileImg  = document.getElementById('profile-img');
+                if (savedAvatar) {
+                    profileImg.src = savedAvatar;
+                } else {
+                    profileImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=10B981&color=fff&bold=true`;
+                }
+
+                // Auth badge
+                const badge = document.getElementById('auth-badge');
+                if (badge) {
+                    badge.innerHTML = user ? '<i class="fa-solid fa-database text-sm mt-px"></i> MySQL Authenticated' : '<i class="fa-solid fa-user-slash text-sm mt-px"></i> Not Logged In';
+                }
+
+                // Hide Skeletons, Show Content
+                const avatarSkel = document.getElementById('avatar-skeleton');
+                const avatarWrap = document.getElementById('avatar-wrapper');
+                const textSkel = document.getElementById('text-skeleton');
+                const textContent = document.getElementById('text-content');
+
+                if (avatarSkel) avatarSkel.classList.add('hidden');
+                if (avatarWrap) avatarWrap.classList.remove('opacity-0');
+                if (textSkel) textSkel.classList.add('hidden');
+                if (textContent) textContent.classList.remove('hidden');
+
+                if (!user) {
+                    showToast('Sesi tidak ditemukan. Silakan login kembali.', 'error');
+                }
+            }, 300);
 
             renderAchievements();
         });
