@@ -575,35 +575,42 @@ app.get('/api/habits', async (req, res) => {
     }
 });
 
-// POST tambah habit baru
+// POST habit baru
 app.post('/api/habits', async (req, res) => {
     const userId = req.headers['x-user-id'];
-    const { habit_name, category_id, goals, description, evaluation_type } = req.body;
+    const { habit_name, description, category, icon } = req.body;
 
     if (!userId) return res.status(401).json({ success: false, message: 'Tidak terautentikasi.' });
     if (!habit_name || !habit_name.trim()) return res.status(400).json({ success: false, message: 'Nama habit wajib diisi.' });
-    if (!category_id) return res.status(400).json({ success: false, message: 'Kategori wajib dipilih.' });
+    if (!category) return res.status(400).json({ success: false, message: 'Kategori wajib diisi.' });
 
-    const validEvalTypes = ['checklist', 'numeric', 'timer'];
-    const evalType = validEvalTypes.includes(evaluation_type) ? evaluation_type : 'checklist';
+    const evalType = 'checklist'; // Hardcoded boolean method
 
     try {
         const dbPromise = db.promise();
+        let categoryId = null;
 
-        // Pastikan category_id valid (standard atau kustom milik user ini)
+        // Cari kategori berdasarkan nama
         const [catRows] = await dbPromise.query(
-            `SELECT id FROM categories
-             WHERE id = ? AND (type = 'standard' OR created_by_user_id = ?)`,
-            [category_id, userId]
+            `SELECT id FROM categories WHERE name = ? AND (type = 'standard' OR created_by_user_id = ?) LIMIT 1`,
+            [category, userId]
         );
-        if (catRows.length === 0) {
-            return res.status(400).json({ success: false, message: 'Kategori tidak valid.' });
+
+        if (catRows.length > 0) {
+            categoryId = catRows[0].id;
+        } else {
+            // Buat kategori custom baru
+            const [newCat] = await dbPromise.query(
+                `INSERT INTO categories (name, icon_name, type, created_by_user_id) VALUES (?, ?, 'custom', ?)`,
+                [category, icon || 'bi-star', userId]
+            );
+            categoryId = newCat.insertId;
         }
 
         const [result] = await dbPromise.query(
-            `INSERT INTO habits (user_id, category_id, habit_name, goals, description, evaluation_type)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [userId, category_id, habit_name.trim(), goals || null, description || null, evalType]
+            `INSERT INTO habits (user_id, category_id, habit_name, description, evaluation_type)
+             VALUES (?, ?, ?, ?, ?)`,
+            [userId, categoryId, habit_name.trim(), description || null, evalType]
         );
 
         console.log(`✅ Habit baru dibuat: id=${result.insertId}, user=${userId}, eval=${evalType}`);

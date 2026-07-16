@@ -780,78 +780,7 @@
                     </div>
                 </div>
             </section>
-
-            <!-- ── 3. Evaluation Method ── -->
-            <section id="section-eval">
-                <p class="section-label">Evaluation Method</p>
-                <div class="eval-grid">
-
-                    <div class="eval-card selected" data-eval="checklist" id="eval-checklist" role="button" tabindex="0"
-                        aria-pressed="true">
-                        <div class="eval-icon-wrap eval-icon-checklist">
-                            <i class="bi bi-clipboard2-check"></i>
-                        </div>
-                        <div class="eval-text">
-                            <div class="eval-title">Checklist</div>
-                            <div class="eval-desc">Simple done / not done tracking</div>
-                        </div>
-                        <div class="eval-radio">
-                            <div class="eval-radio-dot"></div>
-                        </div>
-                    </div>
-
-                    <div class="eval-card" data-eval="numeric" id="eval-numeric" role="button" tabindex="0"
-                        aria-pressed="false">
-                        <div class="eval-icon-wrap eval-icon-numeric">
-                            <i class="bi bi-123"></i>
-                        </div>
-                        <div class="eval-text">
-                            <div class="eval-title">Numeric Value</div>
-                            <div class="eval-desc">Track amounts like pages, glasses, reps</div>
-                        </div>
-                        <div class="eval-radio">
-                            <div class="eval-radio-dot"></div>
-                        </div>
-                    </div>
-
-                    <!-- Numeric preview -->
-                    <div class="numeric-preview" id="numeric-preview">
-                        <p class="preview-label">Counter Preview</p>
-                        <div class="counter-row">
-                            <span class="counter-text">Your progress</span>
-                            <div class="counter-controls">
-                                <button class="counter-btn" id="counter-minus" type="button" aria-label="Decrease"><i
-                                        class="bi bi-dash"></i></button>
-                                <div class="counter-circle" id="counter-circle">0</div>
-                                <button class="counter-btn" id="counter-plus" type="button" aria-label="Increase"><i
-                                        class="bi bi-plus"></i></button>
-                            </div>
-                        </div>
-                        <div class="form-group" style="margin-top:12px;">
-                            <label class="form-label" for="habit-unit">Unit Label <span
-                                    style="font-weight:400;text-transform:none;">(optional)</span></label>
-                            <input type="text" id="habit-unit" class="form-input"
-                                placeholder="e.g., glasses, pages, reps" maxlength="30">
-                        </div>
-                    </div>
-
-                    <div class="eval-card" data-eval="timer" id="eval-timer" role="button" tabindex="0"
-                        aria-pressed="false">
-                        <div class="eval-icon-wrap eval-icon-timer">
-                            <i class="bi bi-stopwatch"></i>
-                        </div>
-                        <div class="eval-text">
-                            <div class="eval-title">Timer</div>
-                            <div class="eval-desc">Track total time spent on your habit</div>
-                        </div>
-                        <div class="eval-radio">
-                            <div class="eval-radio-dot"></div>
-                        </div>
-                    </div>
-
-                </div>
-            </section>
-
+            <!-- Evaluation Section Removed -->
         </div><!-- /content -->
     </div><!-- /page-wrapper -->
 
@@ -1151,15 +1080,6 @@
             updateCounter();
         });
 
-        function updateCounter() {
-            counterCircle.textContent = counterValue;
-            if (counterValue > 0) {
-                counterCircle.classList.add('active');
-            } else {
-                counterCircle.classList.remove('active');
-            }
-        }
-
         // ── Form validation ────────────────────────────────────────────
         function validateForm() {
             let valid = true;
@@ -1204,38 +1124,33 @@
             btnSubmit.disabled = true;
             btnSubmit.innerHTML = `<i class="bi bi-arrow-repeat" style="font-size:1.1rem;animation:spin 0.8s linear infinite;"></i> Creating…`;
 
-            let finalCategoryId = selectedCategoryId;
-
             try {
-                // If custom category, create it first
+                let finalCategoryName = '';
+                let finalCategoryIcon = '';
+
                 if (selectedCategoryId === 'custom') {
-                    const customName = customCatName.value.trim();
-                    if (!customName) {
+                    finalCategoryName = customCatName.value.trim();
+                    finalCategoryIcon = selectedCustomIcon;
+                    if (!finalCategoryName) {
                         showToast('⚠️ Please enter a custom category name.');
                         resetSubmitBtn();
                         return;
                     }
-
-                    const catResp = await fetch(`${API_BASE}/api/categories`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-User-Id': userId
-                        },
-                        body: JSON.stringify({ name: customName, icon_name: selectedCustomIcon })
-                    });
-                    const catData = await catResp.json();
-                    if (!catData.success) throw new Error(catData.message || 'Failed to create category');
-                    finalCategoryId = catData.categoryId;
+                } else {
+                    // Extract name and icon from selected category card
+                    const selectedCatEl = document.querySelector('.cat-card.selected');
+                    if (selectedCatEl) {
+                        finalCategoryName = selectedCatEl.dataset.cat || selectedCatEl.querySelector('span').innerText.trim().toLowerCase();
+                        finalCategoryIcon = selectedCatEl.dataset.icon;
+                    }
                 }
 
                 // Create the habit
                 const payload = {
                     habit_name: habitName.value.trim(),
-                    category_id: finalCategoryId,
-                    goals: habitGoals.value.trim() || null,
                     description: habitDesc.value.trim() || null,
-                    evaluation_type: selectedEval
+                    category: finalCategoryName,
+                    icon: finalCategoryIcon
                 };
 
                 const habitResp = await fetch(`${API_BASE}/api/habits`, {
@@ -1256,9 +1171,8 @@
                     cached.push({
                         id: habitData.habitId,
                         habit_name: payload.habit_name,
-                        goals: payload.goals,
-                        evaluation_type: payload.evaluation_type,
-                        category_id: finalCategoryId
+                        category_id: habitData.habitId, // Placeholder until refetched
+                        evaluation_type: 'checklist'
                     });
                     localStorage.setItem('habitflow_habits', JSON.stringify(cached));
                 } catch { }
