@@ -1034,38 +1034,7 @@
             }
         }
 
-        // ── Evaluation method selection ────────────────────────────────
-        document.querySelectorAll('.eval-card').forEach(card => {
-            card.addEventListener('click', () => {
-                document.querySelectorAll('.eval-card').forEach(c => {
-                    c.classList.remove('selected');
-                    c.setAttribute('aria-pressed', 'false');
-                });
-                card.classList.add('selected');
-                card.setAttribute('aria-pressed', 'true');
-                selectedEval = card.dataset.eval;
-
-                // Show numeric preview only for numeric type
-                if (selectedEval === 'numeric') {
-                    numericPreview.classList.add('visible');
-                } else {
-                    numericPreview.classList.remove('visible');
-                }
-            });
-            card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') card.click(); });
-        });
-
-        // ── Counter controls ───────────────────────────────────────────
-        document.getElementById('counter-minus').addEventListener('click', () => {
-            if (counterValue > 0) {
-                counterValue--;
-                updateCounter();
-            }
-        });
-        document.getElementById('counter-plus').addEventListener('click', () => {
-            counterValue++;
-            updateCounter();
-        });
+        // ── Evaluation method and Counter logic removed ──────────────
 
         // ── Form validation ────────────────────────────────────────────
         function validateForm() {
