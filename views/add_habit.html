@@ -876,11 +876,19 @@
         // ── Guard: jika tidak ada session, redirect ke login ──────────────
         function requireAuth() {
             const userId = getUserId();
+            const authLoader = document.getElementById('auth-guard-loader');
+            
             if (!userId) {
                 // Simpan halaman tujuan agar bisa kembali setelah login
                 sessionStorage.setItem('redirectAfterLogin', 'add_habit.html');
                 window.location.href = 'login.html';
                 return false;
+            }
+            
+            // Hapus loader otentikasi jika sesi valid
+            if (authLoader) {
+                authLoader.style.opacity = '0';
+                setTimeout(() => authLoader.remove(), 300);
             }
             return true;
         }
@@ -942,6 +950,8 @@
             card.setAttribute('role', 'button');
             card.setAttribute('tabindex', '0');
             card.setAttribute('aria-label', cat.name);
+            card.dataset.cat = cat.name.toLowerCase();
+            card.dataset.icon = cat.icon_name;
 
             card.innerHTML = `
             <div class="cat-icon-wrap" style="background:${isCustomType ? 'linear-gradient(135deg,#34d399,#2dd4bf)' : colors.bg};color:${isCustomType ? '#fff' : colors.color};">
@@ -992,13 +1002,18 @@
 
         // ── Load categories from API ───────────────────────────────────
         async function loadCategories() {
+            if (!requireAuth()) return; // Stop if not authenticated
+            
             const userId = getUserId();
-
-            // Jika user belum login → redirect ke halaman login
-            if (!userId) {
-                requireAuth(); // menyimpan redirectAfterLogin & redirect ke login.html
-                return;
-            }
+            const fallback = [
+                { id: 1, name: 'Art', icon_name: 'bi-palette', type: 'standard' },
+                { id: 2, name: 'Study', icon_name: 'bi-book', type: 'standard' },
+                { id: 3, name: 'Entertain', icon_name: 'bi-controller', type: 'standard' },
+                { id: 4, name: 'Meditate', icon_name: 'bi-moon-stars', type: 'standard' },
+                { id: 5, name: 'Work', icon_name: 'bi-briefcase', type: 'standard' },
+                { id: 6, name: 'Sport', icon_name: 'bi-dribbble', type: 'standard' },
+                { id: 7, name: 'Finance', icon_name: 'bi-wallet2', type: 'standard' },
+            ];
 
             try {
                 const resp = await fetch(`${API_BASE}/api/categories`, {
@@ -1008,42 +1023,41 @@
 
                 if (!data.success) throw new Error(data.message);
 
-                categories = data.categories;
-                categoryGrid.innerHTML = '';
+                categories = data.categories || [];
+                categoryGrid.innerHTML = ''; // Clear skeleton loader
+
+                if (categories.length === 0) {
+                    throw new Error("Kategori kosong dari server");
+                }
 
                 categories.forEach(cat => {
                     categoryGrid.appendChild(buildCategoryCard(cat));
                 });
 
-                // Append "+ Custom" card
-                categoryGrid.appendChild(buildAddCustomCard());
-
-                // Auto-select first category
-                if (categories.length > 0) {
-                    const firstCard = categoryGrid.querySelector('.category-card');
-                    if (firstCard) selectCategory(categories[0].id, firstCard);
-                }
-
             } catch (err) {
                 console.error('Failed to load categories:', err);
-                // Graceful fallback with hardcoded standard categories
+                
+                // Clear skeleton loader
                 categoryGrid.innerHTML = '';
-                const fallback = [
-                    { id: 1, name: 'Art', icon_name: 'bi-palette', type: 'standard' },
-                    { id: 2, name: 'Study', icon_name: 'bi-book', type: 'standard' },
-                    { id: 3, name: 'Entertain', icon_name: 'bi-controller', type: 'standard' },
-                    { id: 4, name: 'Meditate', icon_name: 'bi-moon-stars', type: 'standard' },
-                    { id: 5, name: 'Work', icon_name: 'bi-briefcase', type: 'standard' },
-                    { id: 6, name: 'Sport', icon_name: 'bi-dribbble', type: 'standard' },
-                    { id: 7, name: 'Finance', icon_name: 'bi-wallet2', type: 'standard' },
-                ];
+                
+                // Fallback UI Error
+                const errorMsg = document.createElement('div');
+                errorMsg.style.cssText = "grid-column: 1 / -1; padding: 12px; background: #fee2e2; color: #b91c1c; border-radius: 8px; text-align: center; font-weight: 500;";
+                errorMsg.innerHTML = '<i class="bi bi-exclamation-triangle-fill mr-2"></i> Gagal memuat kategori. Menggunakan offline mode.';
+                categoryGrid.appendChild(errorMsg);
+
+                // Graceful fallback with hardcoded standard categories
                 fallback.forEach(cat => categoryGrid.appendChild(buildCategoryCard(cat)));
+            } finally {
+                // Selalu render card Custom dan auto-select item pertama, terlepas sukses atau error fallback
                 categoryGrid.appendChild(buildAddCustomCard());
-                if (fallback.length > 0) {
-                    const firstCard = categoryGrid.querySelector('.category-card');
-                    if (firstCard) selectCategory(fallback[0].id, firstCard);
+                
+                const firstCard = categoryGrid.querySelector('.category-card');
+                if (firstCard) {
+                    // Timeout digunakan untuk memastikan render DOM sudah terjadi
+                    const catId = firstCard.dataset.catId || 'custom';
+                    setTimeout(() => selectCategory(catId, firstCard), 50);
                 }
-                showToast('⚠️ Could not reach server — using offline categories.');
             }
         }
 
