@@ -167,44 +167,11 @@ function initApp() {
 
 // initHeroSlider removed — Swiper.js handles the hero slider in index.html
 
-// === Custom Toast Notification System ===
+// === Custom Toast Notification System (Disabled) ===
 window.showToast = function (message, type = 'success') {
-    let container = document.getElementById('toast-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'toast-container';
-        container.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-3 pointer-events-none w-[90%] max-w-sm';
-        document.body.appendChild(container);
-    }
-
-    const toast = document.createElement('div');
-    const isError = type === 'error';
-
-    const theme = document.documentElement.getAttribute('data-theme') || 'light';
-    const isDark = theme === 'dark';
-    const iconClass = isError ? 'fa-circle-exclamation text-red-500' : 'fa-circle-check ' + (isDark ? 'text-[#34D399]' : (theme === 'blue' ? 'text-[#5BA4C9]' : 'text-[#10B981]'));
-
-    toast.className = 'bg-white shadow-[0_8px_24px_-4px_rgba(0,0,0,0.15)] rounded-2xl px-4 sm:px-5 py-3.5 flex items-start gap-3 transform -translate-y-12 opacity-0 transition-all duration-400 cubic-bezier(0.16, 1, 0.3, 1) pointer-events-auto border border-gray-100 w-full animate-slide-down';
-
-    toast.innerHTML = `
-        <div class="mt-0.5"><i class="fa-solid ${iconClass} text-xl shrink-0"></i></div>
-        <p class="text-sm font-semibold text-gray-700 leading-snug flex-1 break-words whitespace-normal overflow-hidden">${message}</p>
-        <button class="text-gray-400 hover:text-gray-600 transition-colors ml-1 shrink-0" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>
-    `;
-
-    container.appendChild(toast);
-
-    requestAnimationFrame(() => {
-        toast.style.transform = 'translateY(0)';
-        toast.style.opacity = '1';
-    });
-
-    setTimeout(() => {
-        if (!toast.isConnected) return;
-        toast.style.transform = 'translateY(-12px) scale(0.95)';
-        toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 400);
-    }, 4000);
+    // UI Notification has been permanently disabled to prevent mobile layout lag.
+    // We keep the function signature intact so existing calls don't throw ReferenceErrors.
+    console.log(`Notification muted [${type}]:`, message);
 };
 
 // === Global Confirm Modal System ===

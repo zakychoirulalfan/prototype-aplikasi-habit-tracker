@@ -154,27 +154,11 @@ async function apiFetch(endpoint, options) {
     return json;
 }
 
-// ─── 7. TOAST ────────────────────────────────────────────────────
+// ─── 7. TOAST (Disabled) ─────────────────────────────────────────
 function showToast(message, type) {
     type = type || 'success';
-    console.log('[Admin] Toast:', type, message);
-
-    var existing = document.getElementById('admin-toast');
-    if (existing) existing.remove();
-
-    var toast = document.createElement('div');
-    toast.id = 'admin-toast';
-    toast.className = 'toast-' + type;
-
-    var icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-xmark';
-    toast.innerHTML =
-        '<i class="fa-solid ' + icon + '"></i> ' +
-        '<span>' + escHtml(message) + '</span>';
-
-    document.body.appendChild(toast);
-    setTimeout(function () {
-        if (toast.parentNode) toast.parentNode.removeChild(toast);
-    }, 3500);
+    // UI Notification has been permanently disabled to prevent layout bugs
+    console.log(`[Admin] Notification muted [${type}]:`, message);
 }
 
 // ─── 8. OVERVIEW STATS ───────────────────────────────────────────

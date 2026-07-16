@@ -433,40 +433,6 @@
         }
 
         /* =============================================================
-           TOAST NOTIFICATION
-        ============================================================= */
-        #admin-toast {
-            position: fixed;
-            bottom: 1.5rem;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 99999;
-            padding: .75rem 1.25rem;
-            border-radius: .875rem;
-            font-size: .85rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: .75rem;
-            box-shadow: 0 8px 24px rgba(0,0,0,.15);
-            max-width: 90vw;
-            width: max-content;
-            word-wrap: break-word;
-            white-space: normal;
-            animation: slideToast .3s ease forwards;
-            pointer-events: none;
-        }
-        #admin-toast i { flex-shrink: 0; }
-        #admin-toast span { flex: 1; word-wrap: break-word; overflow-wrap: break-word; }
-        
-        @keyframes slideToast {
-            from { opacity: 0; transform: translate(-50%, .75rem); }
-            to   { opacity: 1; transform: translate(-50%, 0); }
-        }
-        .toast-success { background: #10B981; color: #fff; }
-        .toast-error   { background: #EF4444; color: #fff; }
-
-        /* =============================================================
            RESPONSIVE — stack sidebar on mobile
         ============================================================= */
         @media (max-width: 768px) {
