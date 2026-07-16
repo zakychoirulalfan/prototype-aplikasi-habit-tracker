@@ -173,7 +173,7 @@ window.showToast = function (message, type = 'success') {
     if (!container) {
         container = document.createElement('div');
         container.id = 'toast-container';
-        container.className = 'fixed top-safe pt-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-3 pointer-events-none w-full px-4 max-w-md';
+        container.className = 'fixed top-safe pt-4 left-1/2 -translate-x-1/2 z-[99999] flex flex-col items-center gap-3 pointer-events-none w-full max-w-[95vw] sm:max-w-md px-2 sm:px-4';
         document.body.appendChild(container);
     }
 
@@ -184,12 +184,12 @@ window.showToast = function (message, type = 'success') {
     const isDark = theme === 'dark';
     const iconClass = isError ? 'fa-circle-exclamation text-red-500' : 'fa-circle-check ' + (isDark ? 'text-[#34D399]' : (theme === 'blue' ? 'text-[#5BA4C9]' : 'text-[#10B981]'));
 
-    toast.className = 'bg-white shadow-[0_8px_24px_-4px_rgba(0,0,0,0.15)] rounded-2xl px-5 py-3.5 flex items-start gap-3.5 transform -translate-y-12 opacity-0 transition-all duration-400 cubic-bezier(0.16, 1, 0.3, 1) pointer-events-auto border border-gray-100 w-full animate-slide-down';
+    toast.className = 'bg-white shadow-[0_8px_24px_-4px_rgba(0,0,0,0.15)] rounded-2xl px-4 sm:px-5 py-3.5 flex items-start gap-3 transform -translate-y-12 opacity-0 transition-all duration-400 cubic-bezier(0.16, 1, 0.3, 1) pointer-events-auto border border-gray-100 w-full animate-slide-down';
 
     toast.innerHTML = `
         <div class="mt-0.5"><i class="fa-solid ${iconClass} text-xl shrink-0"></i></div>
-        <p class="text-sm font-semibold text-gray-700 leading-snug flex-1">${message}</p>
-        <button class="text-gray-400 hover:text-gray-600 transition-colors ml-1" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>
+        <p class="text-sm font-semibold text-gray-700 leading-snug flex-1 break-words whitespace-normal overflow-hidden">${message}</p>
+        <button class="text-gray-400 hover:text-gray-600 transition-colors ml-1 shrink-0" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>
     `;
 
     container.appendChild(toast);

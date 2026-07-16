@@ -169,7 +169,7 @@ function showToast(message, type) {
     var icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-xmark';
     toast.innerHTML =
         '<i class="fa-solid ' + icon + '"></i> ' +
-        escHtml(message);
+        '<span>' + escHtml(message) + '</span>';
 
     document.body.appendChild(toast);
     setTimeout(function () {
