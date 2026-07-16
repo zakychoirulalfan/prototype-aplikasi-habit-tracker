@@ -1,355 +1,468 @@
 // ================================================================
 // admin.js — HabitFlow Admin Control Panel
-// Connects to: Express backend /api/admin/* (TiDB Cloud)
-// Auth: x-admin-key header from localStorage
+// Backend: Express + TiDB Cloud on Vercel
+// Auth:    x-admin-key header (from localStorage)
+// Mobile:  touch-action:manipulation, min 44px targets
+// Dark mode: PERMANENTLY REMOVED
 // ================================================================
 
-// ─── CONSTANTS ──────────────────────────────────────────────────
-const ADMIN_KEY_STORAGE = 'hf_admin_key';
+'use strict';
 
-// Detect base URL automatically (works on localhost AND Vercel)
-const API_BASE = window.location.origin;
+const ADMIN_KEY = 'hf_admin_key';
+const API_BASE  = window.location.origin;  // auto-detects localhost vs Vercel
 
-// ─── BOOT ────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-    const storedKey = localStorage.getItem(ADMIN_KEY_STORAGE);
+// ─── 1. BOOT ─────────────────────────────────────────────────────
+// Runs after DOM is ready. No dependency on app.js.
+document.addEventListener('DOMContentLoaded', function () {
+    console.log('[Admin] DOMContentLoaded fired — booting admin panel');
 
+    const storedKey = localStorage.getItem(ADMIN_KEY);
     if (!storedKey) {
+        console.log('[Admin] No key in storage — prompting user');
         promptAdminKey();
     } else {
-        initAdmin(storedKey);
+        console.log('[Admin] Key found in storage — validating with server');
+        initAdmin();
     }
 });
 
-// Prompt for admin key if not stored
+// ─── 2. KEY PROMPT ───────────────────────────────────────────────
 function promptAdminKey() {
-    const key = window.prompt('🔐 Masukkan Admin Secret Key untuk mengakses panel ini:');
-    if (!key) {
-        window.location.href = 'login.html';
+    const key = window.prompt('🔐 Masukkan Admin Secret Key:');
+    if (!key || !key.trim()) {
+        console.warn('[Admin] No key entered — redirecting to login');
+        window.location.replace('login.html');
         return;
     }
-    localStorage.setItem(ADMIN_KEY_STORAGE, key.trim());
-    initAdmin(key.trim());
+    localStorage.setItem(ADMIN_KEY, key.trim());
+    console.log('[Admin] Key saved — validating');
+    initAdmin();
 }
 
-// Initialize admin panel
-async function initAdmin(key) {
-    // Validate key against server first
+// ─── 3. INIT ─────────────────────────────────────────────────────
+async function initAdmin() {
     try {
-        const res = await apiFetch('/api/admin/overview');
-        if (!res.success) throw new Error('Unauthorized');
-        // Key valid — render dashboard
+        const data = await apiFetch('/api/admin/overview');
+        if (!data.success) throw new Error('Invalid key');
+        console.log('[Admin] Key valid ✅ — loading all data');
         fetchAllStats();
-        fetchUsers();
-        fetchHabits();
-        fetchFeedback();
+        // Other tabs load on demand — no upfront fetch needed
     } catch (err) {
-        localStorage.removeItem(ADMIN_KEY_STORAGE);
-        alert('❌ Admin Key salah atau server tidak merespons. Silakan coba lagi.');
-        window.location.href = 'login.html';
+        console.error('[Admin] Key validation failed:', err.message);
+        localStorage.removeItem(ADMIN_KEY);
+        alert('❌ Admin Key salah atau server tidak merespons.\nSilakan coba lagi.');
+        window.location.replace('login.html');
     }
 }
 
-// ─── API HELPER ──────────────────────────────────────────────────
-async function apiFetch(endpoint, options = {}) {
-    const key = localStorage.getItem(ADMIN_KEY_STORAGE) || '';
-    const defaultHeaders = {
+// ─── 4. LOGOUT ───────────────────────────────────────────────────
+// Called by onclick="handleAdminLogout()" — works on desktop AND mobile
+function handleAdminLogout() {
+    console.log('[Admin] Logout triggered');
+    localStorage.removeItem(ADMIN_KEY);
+    sessionStorage.clear();
+    // replace() prevents back-button returning to admin panel
+    window.location.replace('login.html');
+}
+
+// ─── 5. TAB SWITCHING ────────────────────────────────────────────
+// Uses .is-active class (defined in HTML <style>) — no Tailwind needed
+function switchTab(tabId) {
+    console.log('[Admin] switchTab →', tabId);
+
+    // Hide all panels
+    document.querySelectorAll('.tab-panel').forEach(function (el) {
+        el.classList.remove('is-active');
+    });
+
+    // Deactivate all nav buttons
+    document.querySelectorAll('.nav-btn').forEach(function (el) {
+        el.classList.remove('active');
+        // Keep danger class for logout button
+    });
+
+    // Show selected panel
+    var panel = document.getElementById('tab-' + tabId);
+    if (panel) {
+        panel.classList.add('is-active');
+    } else {
+        console.error('[Admin] Panel not found: tab-' + tabId);
+    }
+
+    // Activate selected nav button
+    var navBtn = document.getElementById('nav-' + tabId);
+    if (navBtn) navBtn.classList.add('active');
+
+    // Lazy-load data for that tab
+    if (tabId === 'dashboard') fetchAllStats();
+    if (tabId === 'users')     fetchUsers();
+    if (tabId === 'habits')    fetchHabits();
+    if (tabId === 'feedback')  fetchFeedback();
+}
+
+// ─── 6. API HELPER ───────────────────────────────────────────────
+async function apiFetch(endpoint, options) {
+    options = options || {};
+    var key = localStorage.getItem(ADMIN_KEY) || '';
+
+    var headers = {
         'Content-Type': 'application/json',
         'x-admin-key': key
     };
-    const res = await fetch(API_BASE + endpoint, {
-        ...options,
-        headers: { ...defaultHeaders, ...(options.headers || {}) }
+    // Merge any extra headers
+    if (options.headers) {
+        Object.assign(headers, options.headers);
+    }
+
+    var res = await fetch(API_BASE + endpoint, {
+        method:  options.method  || 'GET',
+        body:    options.body    || undefined,
+        headers: headers
     });
+
+    console.log('[Admin] API', options.method || 'GET', endpoint, '→', res.status);
+
     if (res.status === 403) {
-        localStorage.removeItem(ADMIN_KEY_STORAGE);
-        alert('❌ Sesi admin habis. Silakan login ulang.');
-        window.location.href = 'login.html';
+        localStorage.removeItem(ADMIN_KEY);
+        showToast('Sesi admin habis. Silakan login ulang.', 'error');
+        setTimeout(function () { window.location.replace('login.html'); }, 1500);
         throw new Error('Forbidden');
     }
+
     return res.json();
 }
 
-// ─── LOGOUT ──────────────────────────────────────────────────────
-function handleAdminLogout() {
-    localStorage.removeItem(ADMIN_KEY_STORAGE);
-    window.location.href = 'login.html';
-}
+// ─── 7. TOAST ────────────────────────────────────────────────────
+function showToast(message, type) {
+    type = type || 'success';
+    console.log('[Admin] Toast:', type, message);
 
-// ─── TAB SWITCHING ───────────────────────────────────────────────
-function switchTab(tabId) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-    document.querySelectorAll('.admin-nav-item').forEach(el => {
-        el.className = 'admin-nav-item relative overflow-hidden flex items-center gap-3 px-5 py-3.5 rounded-xl text-[var(--text-muted)] hover:text-white hover:bg-[var(--primary)] font-medium transition-all group';
-    });
-    const tab = document.getElementById(`tab-${tabId}`);
-    if (tab) tab.classList.remove('hidden');
-    const navBtn = document.getElementById(`nav-${tabId}`);
-    if (navBtn) {
-        navBtn.className = 'admin-nav-item relative overflow-hidden flex items-center gap-3 px-5 py-3.5 rounded-xl bg-[var(--primary)] text-white font-semibold shadow-lg shadow-primary/30 transition-all group';
-    }
-}
-
-// ─── TOAST NOTIFICATION ──────────────────────────────────────────
-function showToast(message, type = 'success') {
-    const existing = document.getElementById('admin-toast');
+    var existing = document.getElementById('admin-toast');
     if (existing) existing.remove();
 
-    const toast = document.createElement('div');
+    var toast = document.createElement('div');
     toast.id = 'admin-toast';
-    const colors = type === 'success'
-        ? 'bg-emerald-500 text-white'
-        : 'bg-red-500 text-white';
-    toast.className = `fixed bottom-6 right-6 z-[9999] px-5 py-3 rounded-2xl shadow-xl font-semibold text-sm flex items-center gap-2 transition-all ${colors}`;
-    toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-xmark'}"></i> ${message}`;
+    toast.className = 'toast-' + type;
+
+    var icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-xmark';
+    toast.innerHTML =
+        '<i class="fa-solid ' + icon + '"></i> ' +
+        escHtml(message);
+
     document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3500);
+    setTimeout(function () {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 3500);
 }
 
-// ─── OVERVIEW / STATS ────────────────────────────────────────────
+// ─── 8. OVERVIEW STATS ───────────────────────────────────────────
 async function fetchAllStats() {
-    const setEl = (id, val) => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = val;
-    };
-    setEl('stat-total-users', '…');
-    setEl('stat-total-habits', '…');
-    setEl('stat-total-feedback', '…');
-    setEl('stat-avg-rating', '…');
+    console.log('[Admin] fetchAllStats()');
+
+    setText('stat-total-users',    '…');
+    setText('stat-total-habits',   '…');
+    setText('stat-total-feedback', '…');
+    setText('stat-avg-rating',     '…');
 
     try {
-        const data = await apiFetch('/api/admin/overview');
-        if (!data.success) throw new Error(data.message);
-        const o = data.overview;
-        setEl('stat-total-users', o.total_users);
-        setEl('stat-total-habits', o.total_habits);
-        setEl('stat-total-feedback', o.feedback_items);
-        setEl('stat-avg-rating', (o.avg_rating || 0).toFixed(1) + ' / 5');
+        var data = await apiFetch('/api/admin/overview');
+        if (!data.success) throw new Error(data.message || 'Unknown error');
+
+        var o = data.overview;
+        setText('stat-total-users',    o.total_users);
+        setText('stat-total-habits',   o.total_habits);
+        setText('stat-total-feedback', o.feedback_items);
+        setText('stat-avg-rating',     (o.avg_rating || 0).toFixed(1) + ' / 5');
+
+        console.log('[Admin] Stats loaded:', o);
     } catch (err) {
-        console.error('❌ fetchAllStats:', err);
-        setEl('stat-total-users', 'ERR');
-        setEl('stat-total-habits', 'ERR');
-        setEl('stat-total-feedback', 'ERR');
-        setEl('stat-avg-rating', 'ERR');
+        console.error('[Admin] fetchAllStats error:', err);
+        setText('stat-total-users',    'ERR');
+        setText('stat-total-habits',   'ERR');
+        setText('stat-total-feedback', 'ERR');
+        setText('stat-avg-rating',     'ERR');
     }
 }
 
-// ─── USERS ───────────────────────────────────────────────────────
+// ─── 9. USERS ────────────────────────────────────────────────────
 async function fetchUsers() {
-    const tbody = document.getElementById('users-table-body');
-    tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-[var(--text-muted)]"><i class="fa-solid fa-spinner fa-spin mr-2 text-primary"></i>Memuat data user...</td></tr>`;
+    console.log('[Admin] fetchUsers()');
+    var tbody = document.getElementById('users-table-body');
+    tbody.innerHTML = loadingRow(5, 'Memuat data user...');
 
     try {
-        const data = await apiFetch('/api/admin/users');
+        var data = await apiFetch('/api/admin/users');
         if (!data.success) throw new Error(data.message);
 
-        if (data.users.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-[var(--text-muted)]">Belum ada user terdaftar.</td></tr>`;
+        if (!data.users || data.users.length === 0) {
+            tbody.innerHTML = emptyRow(5, 'Belum ada user terdaftar.');
             return;
         }
 
-        tbody.innerHTML = data.users.map(user => {
-            const initial = (user.username || 'U').charAt(0).toUpperCase();
-            const dateStr = user.created_at ? new Date(user.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
-            const isBanned = user.status === 'banned';
-            const statusBadge = isBanned
-                ? `<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400">Banned</span>`
-                : `<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">Active</span>`;
-            const banBtnLabel = isBanned ? 'Unban' : 'Ban';
-            const banBtnClass = isBanned
-                ? 'hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-400'
-                : 'hover:bg-orange-50 hover:text-orange-500 dark:hover:bg-orange-500/20 dark:hover:text-orange-400';
-            const newStatus = isBanned ? 'active' : 'banned';
+        tbody.innerHTML = data.users.map(function (u) {
+            var initial  = (u.username || 'U').charAt(0).toUpperCase();
+            var dateStr  = u.created_at
+                ? new Date(u.created_at).toLocaleDateString('id-ID', { year:'numeric', month:'short', day:'numeric' })
+                : '-';
+            var isBanned = u.status === 'banned';
+            var badge    = isBanned
+                ? '<span class="badge badge-banned">Banned</span>'
+                : '<span class="badge badge-active">Active</span>';
+            var newStatus = isBanned ? 'active' : 'banned';
+            var btnLabel  = isBanned ? 'Unban' : 'Ban';
+            var btnClass  = isBanned ? 'btn btn-badge unban' : 'btn btn-badge ban';
 
-            return `
-            <tr class="hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-all group">
-                <td class="p-5 font-mono text-xs text-gray-500 align-middle">
-                    <span class="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">#${user.user_id}</span>
-                </td>
-                <td class="p-5 align-middle">
-                    <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-emerald-300 text-white flex items-center justify-center font-bold text-sm shadow-sm">${initial}</div>
-                        <div>
-                            <div class="font-bold text-[var(--text-main)]">${escHtml(user.username)}</div>
-                            <div class="text-xs text-[var(--text-muted)]">${dateStr}</div>
-                        </div>
-                    </div>
-                </td>
-                <td class="p-5 text-[var(--text-muted)] text-sm align-middle">${escHtml(user.email_address)}</td>
-                <td class="p-5 align-middle">${statusBadge}</td>
-                <td class="p-5 text-right align-middle">
-                    <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                        <button class="px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 ${banBtnClass} transition-all"
-                            onclick="updateUserStatus(${user.user_id}, '${newStatus}')" title="${banBtnLabel} user">${banBtnLabel}</button>
-                        <button class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/20 dark:hover:text-red-400 transition-all"
-                            onclick="deleteUser(${user.user_id})" title="Hapus user">
-                            <i class="fa-solid fa-trash text-xs"></i>
-                        </button>
-                    </div>
-                </td>
-            </tr>`;
+            return '<tr>' +
+                '<td class="muted" style="font-family:monospace;font-size:.75rem;">' +
+                    '<span style="background:#F3F4F6;padding:.2rem .5rem;border-radius:.3rem;">#' + escHtml(String(u.user_id)) + '</span>' +
+                '</td>' +
+                '<td>' +
+                    '<div style="display:flex;align-items:center;gap:.6rem;">' +
+                        '<div class="avatar">' + escHtml(initial) + '</div>' +
+                        '<div>' +
+                            '<div style="font-weight:700;">' + escHtml(u.username) + '</div>' +
+                            '<div style="font-size:.75rem;color:#9CA3AF;">' + escHtml(dateStr) + '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</td>' +
+                '<td class="muted">' + escHtml(u.email_address) + '</td>' +
+                '<td>' + badge + '</td>' +
+                '<td class="right">' +
+                    '<div class="row-actions">' +
+                        '<button type="button" class="' + btnClass + '" ' +
+                            'onclick="updateUserStatus(' + u.user_id + ',\'' + newStatus + '\')" ' +
+                            'title="' + btnLabel + '">' + btnLabel + '</button>' +
+                        '<button type="button" class="btn btn-icon" ' +
+                            'onclick="deleteUser(' + u.user_id + ')" ' +
+                            'title="Hapus user">' +
+                            '<i class="fa-solid fa-trash"></i>' +
+                        '</button>' +
+                    '</div>' +
+                '</td>' +
+            '</tr>';
         }).join('');
+
+        console.log('[Admin] Users rendered:', data.users.length);
     } catch (err) {
-        console.error('❌ fetchUsers:', err);
-        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500">Gagal memuat data user: ${err.message}</td></tr>`;
+        console.error('[Admin] fetchUsers error:', err);
+        tbody.innerHTML = errorRow(5, 'Gagal memuat user: ' + err.message);
     }
 }
 
 async function updateUserStatus(userId, newStatus) {
-    const label = newStatus === 'banned' ? 'BAN' : 'UNBAN';
-    if (!confirm(`Yakin ingin ${label} user ID #${userId}?`)) return;
+    console.log('[Admin] updateUserStatus:', userId, '->', newStatus);
+    var label = newStatus === 'banned' ? 'BAN' : 'UNBAN';
+    if (!confirm('Yakin ingin ' + label + ' user #' + userId + '?')) {
+        console.log('[Admin] updateUserStatus cancelled');
+        return;
+    }
     try {
-        const data = await apiFetch(`/api/admin/users/${userId}/status`, {
+        var data = await apiFetch('/api/admin/users/' + userId + '/status', {
             method: 'PATCH',
             body: JSON.stringify({ status: newStatus })
         });
         if (!data.success) throw new Error(data.message);
-        showToast(data.message);
+        showToast(data.message, 'success');
         fetchUsers();
         fetchAllStats();
     } catch (err) {
+        console.error('[Admin] updateUserStatus error:', err);
         showToast('Gagal: ' + err.message, 'error');
     }
 }
 
 async function deleteUser(userId) {
-    if (!confirm(`⚠️ HAPUS PERMANEN user #${userId} beserta semua habit dan datanya? Tindakan ini tidak bisa dibatalkan!`)) return;
+    console.log('[Admin] deleteUser:', userId);
+    if (!confirm('⚠️ HAPUS PERMANEN user #' + userId + ' beserta semua habit & datanya?\nTindakan ini tidak bisa dibatalkan!')) {
+        console.log('[Admin] deleteUser cancelled');
+        return;
+    }
     try {
-        const data = await apiFetch(`/api/admin/users/${userId}`, { method: 'DELETE' });
+        var data = await apiFetch('/api/admin/users/' + userId, { method: 'DELETE' });
         if (!data.success) throw new Error(data.message);
-        showToast(data.message);
+        showToast(data.message, 'success');
         fetchUsers();
         fetchAllStats();
     } catch (err) {
+        console.error('[Admin] deleteUser error:', err);
         showToast('Gagal: ' + err.message, 'error');
     }
 }
 
-// ─── HABITS ──────────────────────────────────────────────────────
+// ─── 10. HABITS ──────────────────────────────────────────────────
 async function fetchHabits() {
-    const tbody = document.getElementById('habits-table-body');
-    tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-[var(--text-muted)]"><i class="fa-solid fa-spinner fa-spin mr-2 text-primary"></i>Memuat data habit...</td></tr>`;
+    console.log('[Admin] fetchHabits()');
+    var tbody = document.getElementById('habits-table-body');
+    tbody.innerHTML = loadingRow(5, 'Memuat data habit...');
 
     try {
-        const data = await apiFetch('/api/admin/habits');
+        var data = await apiFetch('/api/admin/habits');
         if (!data.success) throw new Error(data.message);
 
-        if (data.habits.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-[var(--text-muted)]">Belum ada habit.</td></tr>`;
+        if (!data.habits || data.habits.length === 0) {
+            tbody.innerHTML = emptyRow(5, 'Belum ada habit.');
             return;
         }
 
-        tbody.innerHTML = data.habits.map(h => {
-            const dateStr = h.created_on ? new Date(h.created_on).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
-            const activeTag = h.is_active
-                ? `<span class="ml-1 px-1.5 py-0.5 text-[10px] bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 rounded font-bold">ACTIVE</span>`
-                : `<span class="ml-1 px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-400 dark:bg-gray-700 rounded font-bold">INACTIVE</span>`;
-            return `
-            <tr class="hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-all group">
-                <td class="p-5 align-middle">
-                    <div class="font-bold text-[var(--text-main)]">${escHtml(h.habit_detail)} ${activeTag}</div>
-                </td>
-                <td class="p-5 align-middle">
-                    <span class="px-3 py-1 bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20 text-xs rounded-full font-bold">${escHtml(h.category)}</span>
-                </td>
-                <td class="p-5 align-middle">
-                    <div class="text-sm font-medium">${escHtml(h.username)}</div>
-                    <div class="text-xs text-[var(--text-muted)]">${escHtml(h.owner_email)}</div>
-                </td>
-                <td class="p-5 text-[var(--text-muted)] text-sm align-middle">${dateStr}</td>
-                <td class="p-5 text-right align-middle">
-                    <button class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/20 dark:hover:text-red-400 transition-all opacity-0 group-hover:opacity-100"
-                        onclick="deleteHabit(${h.habit_id})" title="Hapus habit">
-                        <i class="fa-solid fa-trash text-xs"></i>
-                    </button>
-                </td>
-            </tr>`;
+        tbody.innerHTML = data.habits.map(function (h) {
+            var dateStr   = h.created_on
+                ? new Date(h.created_on).toLocaleDateString('id-ID', { year:'numeric', month:'short', day:'numeric' })
+                : '-';
+            var statusTag = h.is_active
+                ? '<span class="badge-tag-sm badge-active-sm">ACTIVE</span>'
+                : '<span class="badge-tag-sm badge-inactive-sm">INACTIVE</span>';
+
+            return '<tr>' +
+                '<td>' +
+                    '<span style="font-weight:700;">' + escHtml(h.habit_detail) + '</span> ' + statusTag +
+                '</td>' +
+                '<td><span class="badge-tag">' + escHtml(h.category) + '</span></td>' +
+                '<td>' +
+                    '<div style="font-weight:600;font-size:.875rem;">' + escHtml(h.username) + '</div>' +
+                    '<div style="font-size:.75rem;color:#9CA3AF;">' + escHtml(h.owner_email) + '</div>' +
+                '</td>' +
+                '<td class="muted">' + escHtml(dateStr) + '</td>' +
+                '<td class="right">' +
+                    '<div class="row-actions">' +
+                        '<button type="button" class="btn btn-icon" ' +
+                            'onclick="deleteHabit(' + h.habit_id + ')" ' +
+                            'title="Hapus habit">' +
+                            '<i class="fa-solid fa-trash"></i>' +
+                        '</button>' +
+                    '</div>' +
+                '</td>' +
+            '</tr>';
         }).join('');
+
+        console.log('[Admin] Habits rendered:', data.habits.length);
     } catch (err) {
-        console.error('❌ fetchHabits:', err);
-        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500">Gagal memuat data habit: ${err.message}</td></tr>`;
+        console.error('[Admin] fetchHabits error:', err);
+        tbody.innerHTML = errorRow(5, 'Gagal memuat habit: ' + err.message);
     }
 }
 
 async function deleteHabit(habitId) {
-    if (!confirm(`Hapus habit #${habitId}? Progress log-nya juga akan terhapus (CASCADE).`)) return;
+    console.log('[Admin] deleteHabit:', habitId);
+    if (!confirm('Hapus habit #' + habitId + '?\nProgress log-nya juga terhapus (CASCADE).')) {
+        console.log('[Admin] deleteHabit cancelled');
+        return;
+    }
     try {
-        const data = await apiFetch(`/api/admin/habits/${habitId}`, { method: 'DELETE' });
+        var data = await apiFetch('/api/admin/habits/' + habitId, { method: 'DELETE' });
         if (!data.success) throw new Error(data.message);
-        showToast(data.message);
+        showToast(data.message, 'success');
         fetchHabits();
         fetchAllStats();
     } catch (err) {
+        console.error('[Admin] deleteHabit error:', err);
         showToast('Gagal: ' + err.message, 'error');
     }
 }
 
-// ─── FEEDBACK ────────────────────────────────────────────────────
+// ─── 11. FEEDBACK ────────────────────────────────────────────────
 async function fetchFeedback() {
-    const tbody = document.getElementById('feedback-table-body');
-    tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-[var(--text-muted)]"><i class="fa-solid fa-spinner fa-spin mr-2 text-primary"></i>Memuat feedback...</td></tr>`;
+    console.log('[Admin] fetchFeedback()');
+    var tbody = document.getElementById('feedback-table-body');
+    tbody.innerHTML = loadingRow(5, 'Memuat feedback...');
 
     try {
-        const data = await apiFetch('/api/admin/feedback');
+        var data = await apiFetch('/api/admin/feedback');
         if (!data.success) throw new Error(data.message);
 
-        if (data.feedback.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-[var(--text-muted)]">Belum ada feedback dari user.</td></tr>`;
+        if (!data.feedback || data.feedback.length === 0) {
+            tbody.innerHTML = emptyRow(5, 'Belum ada feedback.');
             return;
         }
 
-        tbody.innerHTML = data.feedback.map(fb => {
-            const dateStr = fb.date_submitted
-                ? new Date(fb.date_submitted).toLocaleString('id-ID', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+        tbody.innerHTML = data.feedback.map(function (fb) {
+            var dateStr = fb.date_submitted
+                ? new Date(fb.date_submitted).toLocaleString('id-ID', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })
                 : '-';
-            const stars = Array(5).fill(0).map((_, i) =>
-                `<i class="fa-solid fa-star ${i < fb.rating ? 'text-amber-400' : 'text-gray-200 dark:text-gray-700'} text-sm"></i>`
-            ).join('');
-            const comment = escHtml(fb.feedback_comment || 'Tidak ada komentar');
-            return `
-            <tr class="hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-all group">
-                <td class="p-5 whitespace-nowrap align-top pt-6">
-                    <div class="flex gap-0.5 mb-1">${stars}</div>
-                    <div class="text-xs font-bold text-[var(--text-muted)]">${fb.rating}/5</div>
-                </td>
-                <td class="p-5 align-top pt-6">
-                    <div class="text-sm font-medium text-[var(--text-main)] italic pl-3 border-l-2 border-[var(--primary)]/50">"${comment}"</div>
-                    <div class="text-xs text-[var(--text-muted)] mt-1">— ${escHtml(fb.username || 'Anonymous')}</div>
-                </td>
-                <td class="p-5 align-top pt-6">
-                    <span class="px-2.5 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] uppercase tracking-wider font-bold rounded-md">${escHtml(fb.source || 'Web')}</span>
-                </td>
-                <td class="p-5 text-[var(--text-muted)] text-xs font-medium align-top pt-6">${dateStr}</td>
-                <td class="p-5 text-right align-top pt-5">
-                    <button class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/20 dark:hover:text-red-400 transition-all opacity-0 group-hover:opacity-100"
-                        onclick="deleteFeedback(${fb.id})" title="Hapus feedback">
-                        <i class="fa-solid fa-trash text-xs"></i>
-                    </button>
-                </td>
-            </tr>`;
+
+            // Stars — no dark: class
+            var stars = '';
+            for (var i = 0; i < 5; i++) {
+                var col = i < fb.rating ? '#F59E0B' : '#E5E7EB';
+                stars += '<i class="fa-solid fa-star" style="color:' + col + ';font-size:.8rem;"></i>';
+            }
+
+            var comment = escHtml(fb.feedback_comment || 'Tidak ada komentar');
+
+            return '<tr>' +
+                '<td>' +
+                    '<div style="display:flex;gap:.2rem;margin-bottom:.25rem;">' + stars + '</div>' +
+                    '<div style="font-size:.7rem;font-weight:700;color:#9CA3AF;">' + escHtml(String(fb.rating)) + '/5</div>' +
+                '</td>' +
+                '<td>' +
+                    '<div style="font-size:.875rem;font-style:italic;padding-left:.75rem;border-left:2px solid #10B981;">"' + comment + '"</div>' +
+                    '<div style="font-size:.75rem;color:#9CA3AF;margin-top:.2rem;">— ' + escHtml(fb.username || 'Anonymous') + '</div>' +
+                '</td>' +
+                '<td><span class="badge-source">' + escHtml(fb.source || 'Web') + '</span></td>' +
+                '<td style="font-size:.75rem;color:#9CA3AF;">' + escHtml(dateStr) + '</td>' +
+                '<td class="right">' +
+                    '<div class="row-actions">' +
+                        '<button type="button" class="btn btn-icon" ' +
+                            'onclick="deleteFeedback(' + fb.id + ')" ' +
+                            'title="Hapus feedback">' +
+                            '<i class="fa-solid fa-trash"></i>' +
+                        '</button>' +
+                    '</div>' +
+                '</td>' +
+            '</tr>';
         }).join('');
+
+        console.log('[Admin] Feedback rendered:', data.feedback.length);
     } catch (err) {
-        console.error('❌ fetchFeedback:', err);
-        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500">Gagal memuat feedback: ${err.message}</td></tr>`;
+        console.error('[Admin] fetchFeedback error:', err);
+        tbody.innerHTML = errorRow(5, 'Gagal memuat feedback: ' + err.message);
     }
 }
 
 async function deleteFeedback(feedbackId) {
-    if (!confirm(`Hapus feedback #${feedbackId}?`)) return;
+    console.log('[Admin] deleteFeedback:', feedbackId);
+    if (!confirm('Hapus feedback #' + feedbackId + '?')) {
+        console.log('[Admin] deleteFeedback cancelled');
+        return;
+    }
     try {
-        const data = await apiFetch(`/api/admin/feedback/${feedbackId}`, { method: 'DELETE' });
+        var data = await apiFetch('/api/admin/feedback/' + feedbackId, { method: 'DELETE' });
         if (!data.success) throw new Error(data.message);
-        showToast(data.message);
+        showToast(data.message, 'success');
         fetchFeedback();
         fetchAllStats();
     } catch (err) {
+        console.error('[Admin] deleteFeedback error:', err);
         showToast('Gagal: ' + err.message, 'error');
     }
 }
 
-// ─── UTILITY: XSS-safe HTML escape ───────────────────────────────
+// ─── 12. UTILITIES ───────────────────────────────────────────────
+function setText(id, val) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = val;
+}
+
+function loadingRow(cols, msg) {
+    return '<tr><td colspan="' + cols + '" class="loading-td">' +
+        '<i class="fa-solid fa-spinner fa-spin" style="color:#10B981;margin-right:.5rem;"></i>' +
+        escHtml(msg) +
+    '</td></tr>';
+}
+
+function emptyRow(cols, msg) {
+    return '<tr><td colspan="' + cols + '" class="loading-td">' + escHtml(msg) + '</td></tr>';
+}
+
+function errorRow(cols, msg) {
+    return '<tr><td colspan="' + cols + '" style="padding:2rem;text-align:center;color:#EF4444;">' +
+        '<i class="fa-solid fa-triangle-exclamation" style="margin-right:.4rem;"></i>' +
+        escHtml(msg) +
+    '</td></tr>';
+}
+
+// XSS-safe HTML escaper
 function escHtml(str) {
-    if (!str) return '';
+    if (str === null || str === undefined) return '';
     return String(str)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')

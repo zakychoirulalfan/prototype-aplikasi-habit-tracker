@@ -2,280 +2,692 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Habit Tracker</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="HabitFlow Admin Control Panel">
+    <title>Admin Control — HabitFlow</title>
+
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../css/admin.css">
-    <script>
-        tailwind.config = {
-            darkMode: ['class', '[data-theme="dark"]'],
-            theme: {
-                extend: {
-                    colors: {
-                        primary: { DEFAULT: '#10B981', light: '#D1FAE5', dark: '#059669' },
-                        glass: {
-                            light: 'rgba(255, 255, 255, 0.7)',
-                            dark: 'rgba(31, 41, 55, 0.7)'
-                        }
-                    },
-                    animation: {
-                        'float': 'float 6s ease-in-out infinite',
-                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                    },
-                    keyframes: {
-                        float: {
-                            '0%, 100%': { transform: 'translateY(0)' },
-                            '50%': { transform: 'translateY(-10px)' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     <style>
-        /* Custom scrollbar for tables */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(156, 163, 175, 0.5);
-            border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: rgba(107, 114, 128, 0.8);
-        }
-        
-        /* Glass panel class */
-        .glass-panel {
-            background: var(--card-bg);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--border-color);
-        }
-        
-        [data-theme="light"] .glass-panel {
-            background: rgba(255, 255, 255, 0.85);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+        /* =============================================================
+           RESET & BASE — forced light theme, zero CSS variables
+        ============================================================= */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --green:   #10B981;
+            --green-d: #059669;
+            --green-l: #D1FAE5;
+            --bg:      #F0FDF4;
+            --white:   #FFFFFF;
+            --border:  #E5E7EB;
+            --text:    #111827;
+            --muted:   #6B7280;
+            --light:   #F9FAFB;
         }
 
-        [data-theme="dark"] .glass-panel {
-            background: rgba(17, 24, 39, 0.75);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+        html, body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
         }
-        
-        /* Body background gradient */
-        body {
-            background-color: var(--bg-color);
+
+        /* No media queries for dark — light only */
+
+        /* =============================================================
+           LAYOUT
+        ============================================================= */
+        .page-wrapper {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            position: relative;
+            z-index: 1;
         }
+
+        /* Decorative blobs — pointer-events:none so they NEVER block clicks */
+        .blob {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none !important;
+            z-index: 0;
+        }
+        .blob-1 {
+            top: -100px; right: -100px;
+            width: 350px; height: 350px;
+            background: radial-gradient(circle, rgba(16,185,129,.12) 0%, transparent 70%);
+        }
+        .blob-2 {
+            bottom: -80px; left: -80px;
+            width: 280px; height: 280px;
+            background: radial-gradient(circle, rgba(59,130,246,.08) 0%, transparent 70%);
+        }
+
+        /* =============================================================
+           HEADER
+        ============================================================= */
+        .site-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;                   /* high z-index — nothing blocks it */
+            background: rgba(255,255,255,.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            height: 4.5rem;
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            justify-content: space-between;
+        }
+
+        .logo-wrap { display: flex; align-items: center; gap: .75rem; }
+        .logo-icon {
+            width: 2.5rem; height: 2.5rem;
+            border-radius: .75rem;
+            background: linear-gradient(135deg, var(--green), #6EE7B7);
+            color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 12px rgba(16,185,129,.3);
+            flex-shrink: 0;
+        }
+        .logo-title { font-size: 1.1rem; font-weight: 800; color: var(--text); line-height: 1.2; }
+        .logo-sub   { font-size: .6rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 600; }
+
+        /* LOGOUT — must be a real <button> for iOS tap recognition */
+        #btn-logout {
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+            padding: .6rem 1rem;
+            border: none;
+            border-radius: .5rem;
+            background: transparent;
+            color: var(--muted);
+            font-size: .875rem;
+            font-weight: 600;
+            cursor: pointer;               /* critical for iOS */
+            -webkit-tap-highlight-color: rgba(239,68,68,.15);
+            touch-action: manipulation;    /* prevents double-tap zoom on mobile */
+            transition: background .15s, color .15s;
+            min-height: 44px;              /* WCAG minimum touch target */
+            min-width: 44px;
+        }
+        #btn-logout:hover,
+        #btn-logout:active { background: #FEF2F2; color: #DC2626; }
+        #btn-logout i { transition: transform .15s; }
+        #btn-logout:hover i { transform: translateX(3px); }
+
+        /* =============================================================
+           MAIN BODY LAYOUT
+        ============================================================= */
+        .body-layout {
+            display: flex;
+            flex: 1;
+            max-width: 80rem;
+            margin: 0 auto;
+            width: 100%;
+            padding: 1.5rem;
+            gap: 1.5rem;
+        }
+
+        /* =============================================================
+           SIDEBAR NAV
+        ============================================================= */
+        .sidebar {
+            width: 14rem;
+            flex-shrink: 0;
+        }
+
+        .sidebar-nav {
+            position: sticky;
+            top: 5.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: .4rem;
+        }
+
+        /* NAV BUTTONS — proper <button> tags, large touch targets */
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            padding: .85rem 1.1rem;
+            border: none;
+            border-radius: .875rem;
+            background: transparent;
+            color: var(--muted);
+            font-size: .875rem;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            text-align: left;
+            width: 100%;
+            min-height: 48px;              /* ≥44px for mobile */
+            transition: background .15s, color .15s, box-shadow .15s;
+            -webkit-tap-highlight-color: rgba(16,185,129,.15);
+            touch-action: manipulation;
+            position: relative;
+            z-index: 2;                    /* above blobs */
+        }
+        .nav-btn i { width: 1.1rem; text-align: center; flex-shrink: 0; }
+        .nav-btn:hover  { background: var(--green-l); color: var(--green-d); }
+        .nav-btn:active { background: var(--green-l); transform: scale(.98); }
+        .nav-btn.active {
+            background: var(--green);
+            color: #fff;
+            font-weight: 700;
+            box-shadow: 0 4px 14px rgba(16,185,129,.35);
+        }
+
+        .nav-divider { border-top: 1px solid var(--border); margin: .5rem 0; }
+
+        .nav-btn.danger       { color: #EF4444; }
+        .nav-btn.danger:hover { background: #FEF2F2; color: #DC2626; }
+
+        /* =============================================================
+           MAIN CONTENT
+        ============================================================= */
+        .main-content { flex: 1; min-width: 0; }
+
+        /* TAB VISIBILITY — controlled via JS, not Tailwind hidden */
+        .tab-panel { display: none; }
+        .tab-panel.is-active { display: block; animation: fadeUp .2s ease; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* =============================================================
+           SECTION HEADER
+        ============================================================= */
+        .section-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            gap: 1rem;
+        }
+        .section-title   { font-size: 1.5rem; font-weight: 800; color: var(--text); }
+        .section-subtitle{ font-size: .875rem; color: var(--muted); margin-top: .2rem; }
+
+        /* =============================================================
+           STAT CARDS
+        ============================================================= */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,.05);
+            transition: transform .2s, box-shadow .2s;
+        }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+        .stat-card .blob-deco {
+            position: absolute; top: 0; right: 0;
+            width: 5rem; height: 5rem;
+            border-radius: 0 0 0 100%;
+            pointer-events: none;
+        }
+        .stat-icon {
+            width: 2.75rem; height: 2.75rem;
+            border-radius: .875rem;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+            margin-bottom: .875rem;
+        }
+        .stat-label { font-size: .75rem; color: var(--muted); font-weight: 600; margin-bottom: .3rem; }
+        .stat-value { font-size: 2.25rem; font-weight: 800; color: var(--text); line-height: 1; }
+        .stat-value.amber { color: #F59E0B; }
+
+        /* =============================================================
+           CARD / PANEL
+        ============================================================= */
+        .panel {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,.04);
+        }
+
+        /* =============================================================
+           BUTTONS
+        ============================================================= */
+        /* All action buttons follow same base rules for iOS tap */
+        .btn {
+            border: none;
+            border-radius: .75rem;
+            font-family: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            transition: background .15s, transform .1s, color .15s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .4rem;
+        }
+        .btn:active { transform: scale(.96); }
+
+        .btn-dark {
+            background: #111827;
+            color: #fff;
+            padding: .55rem 1.2rem;
+            font-size: .8rem;
+            min-height: 44px;
+        }
+        .btn-dark:hover { background: #1F2937; }
+
+        /* Icon button — visible at all times (no opacity-0 on mobile!) */
+        .btn-icon {
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: .5rem;
+            background: #F3F4F6;
+            color: #6B7280;
+            padding: 0;
+            font-size: .75rem;
+            min-height: 44px;
+            min-width: 44px;
+        }
+        .btn-icon:hover  { background: #FEE2E2; color: #EF4444; }
+        .btn-icon:active { background: #FECACA; }
+
+        .btn-badge {
+            padding: .3rem .8rem;
+            border-radius: .5rem;
+            font-size: .7rem;
+            background: #F3F4F6;
+            color: #6B7280;
+            min-height: 36px;
+        }
+        .btn-badge.ban:hover    { background: #FEF3C7; color: #D97706; }
+        .btn-badge.unban:hover  { background: var(--green-l); color: var(--green-d); }
+
+        .btn-refresh {
+            width: 2.5rem; height: 2.5rem;
+            border-radius: 50%;
+            background: var(--white);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            font-size: .9rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,.06);
+            min-height: 44px; min-width: 44px;
+        }
+        .btn-refresh:hover { color: var(--green); }
+
+        /* =============================================================
+           TABLE
+        ============================================================= */
+        .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        thead tr { background: #F9FAFB; border-bottom: 1px solid var(--border); }
+        thead th {
+            padding: .875rem 1.25rem;
+            font-size: .65rem;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: #9CA3AF;
+            font-weight: 700;
+            white-space: nowrap;
+            text-align: left;
+        }
+        thead th.right { text-align: right; }
+
+        tbody tr { border-bottom: 1px solid #F3F4F6; transition: background .12s; }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: #F9FAFB; }
+
+        tbody td {
+            padding: .875rem 1.25rem;
+            font-size: .875rem;
+            color: var(--text);
+            vertical-align: middle;
+        }
+        tbody td.right { text-align: right; }
+        tbody td.muted { color: var(--muted); }
+
+        .loading-td { padding: 3rem !important; text-align: center !important; color: var(--muted) !important; }
+
+        /* ACTIONS COLUMN — ALWAYS VISIBLE on mobile (no hover-only hide) */
+        .row-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: .5rem;
+        }
+
+        /* =============================================================
+           BADGES
+        ============================================================= */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: .2rem .65rem;
+            border-radius: 9999px;
+            font-size: .7rem;
+            font-weight: 700;
+        }
+        .badge-active { background: #D1FAE5; color: #059669; }
+        .badge-banned { background: #FEE2E2; color: #DC2626; }
+        .badge-tag    {
+            background: rgba(16,185,129,.1);
+            color: var(--green-d);
+            border: 1px solid rgba(16,185,129,.2);
+            border-radius: 9999px;
+            padding: .2rem .75rem;
+            font-size: .7rem;
+            font-weight: 700;
+        }
+        .badge-tag-sm {
+            padding: .15rem .5rem;
+            border-radius: .3rem;
+            font-size: .65rem;
+            font-weight: 700;
+        }
+        .badge-active-sm { background: #D1FAE5; color: #059669; }
+        .badge-inactive-sm{ background: #F3F4F6; color: #9CA3AF; }
+        .badge-source {
+            background: #EFF6FF; color: #2563EB;
+            border-radius: .3rem;
+            padding: .2rem .55rem;
+            font-size: .6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+
+        /* =============================================================
+           AVATAR
+        ============================================================= */
+        .avatar {
+            width: 2.25rem; height: 2.25rem;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--green), #6EE7B7);
+            color: #fff;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: .8rem;
+            flex-shrink: 0;
+        }
+
+        /* =============================================================
+           TOAST NOTIFICATION
+        ============================================================= */
+        #admin-toast {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 9999;
+            padding: .75rem 1.25rem;
+            border-radius: .875rem;
+            font-size: .85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,.15);
+            max-width: calc(100vw - 3rem);
+            animation: slideToast .3s ease;
+            pointer-events: none;
+        }
+        @keyframes slideToast {
+            from { opacity: 0; transform: translateY(.75rem); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .toast-success { background: #10B981; color: #fff; }
+        .toast-error   { background: #EF4444; color: #fff; }
+
+        /* =============================================================
+           RESPONSIVE — stack sidebar on mobile
+        ============================================================= */
+        @media (max-width: 768px) {
+            .body-layout { flex-direction: column; padding: 1rem; gap: 1rem; }
+            .sidebar { width: 100%; }
+            .sidebar-nav { position: static; flex-direction: row; flex-wrap: wrap; gap: .35rem; }
+            .nav-btn { width: auto; flex: 1 1 auto; min-width: 120px; justify-content: center; padding: .7rem .6rem; font-size: .8rem; }
+            .site-header { padding: 0 1rem; }
+            .section-header { flex-wrap: wrap; }
+        }
+
+        /* =============================================================
+           SCROLLBAR
+        ============================================================= */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 6px; }
     </style>
 </head>
-<body class="text-[var(--text-main)] transition-colors duration-500 min-h-screen relative font-sans antialiased overflow-x-hidden">
 
-    <div class="relative z-10 flex flex-col min-h-screen">
-        <!-- Top Navigation -->
-        <header class="glass-panel sticky top-0 z-50">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-emerald-400 text-white flex items-center justify-center shadow-lg shadow-primary/30">
-                        <i class="fa-solid fa-bolt text-lg"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">Admin Control</h1>
-                        <p class="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold mt-0.5">Habit Tracker App</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-5">
-                    <button onclick="toggleTheme()" class="relative w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all shadow-sm border border-gray-200 dark:border-gray-700">
-                        <i class="fa-solid fa-moon text-gray-600 dark:hidden text-sm"></i>
-                        <i class="fa-solid fa-sun hidden dark:block text-yellow-400 text-sm"></i>
-                    </button>
-                    <div class="h-6 w-px bg-gray-300 dark:bg-gray-700"></div>
-                    <button onclick="handleAdminLogout()" class="group flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400 transition-all">
-                        <span>Log Out</span>
-                        <i class="fa-solid fa-arrow-right-from-bracket group-hover:translate-x-1 transition-transform"></i>
-                    </button>
+<body>
+    <!-- Decorative blobs — pointer-events:none prevents blocking taps -->
+    <div class="blob blob-1" aria-hidden="true"></div>
+    <div class="blob blob-2" aria-hidden="true"></div>
+
+    <div class="page-wrapper">
+
+        <!-- ═══════════════════════════════
+             HEADER
+        ═══════════════════════════════ -->
+        <header class="site-header">
+            <div class="logo-wrap">
+                <div class="logo-icon"><i class="fa-solid fa-bolt"></i></div>
+                <div>
+                    <div class="logo-title">Admin Control</div>
+                    <div class="logo-sub">HabitFlow App</div>
                 </div>
             </div>
+
+            <!-- Logout: real <button>, min 44px, touch-action:manipulation -->
+            <button id="btn-logout" type="button" onclick="handleAdminLogout()">
+                <span>Log Out</span>
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            </button>
         </header>
 
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row gap-8 w-full flex-1">
-            
-            <!-- Sidebar Navigation -->
-            <aside class="w-full md:w-64 shrink-0">
-                <nav class="flex flex-col gap-2 sticky top-28">
-                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="admin-nav-item relative overflow-hidden flex items-center gap-3 px-5 py-3.5 rounded-xl bg-[var(--primary)] text-white font-semibold shadow-lg shadow-primary/30 transition-all group">
-                        <i class="fa-solid fa-chart-line w-5 text-center transition-colors"></i>
-                        <span>Overview</span>
+        <!-- ═══════════════════════════════
+             BODY LAYOUT
+        ═══════════════════════════════ -->
+        <div class="body-layout">
+
+            <!-- SIDEBAR -->
+            <aside class="sidebar">
+                <nav class="sidebar-nav" role="navigation" aria-label="Admin Menu">
+                    <button type="button" class="nav-btn active" id="nav-dashboard"
+                            onclick="switchTab('dashboard')">
+                        <i class="fa-solid fa-chart-line"></i><span>Overview</span>
                     </button>
-                    <button onclick="switchTab('users')" id="nav-users" class="admin-nav-item relative overflow-hidden flex items-center gap-3 px-5 py-3.5 rounded-xl text-[var(--text-muted)] hover:text-white hover:bg-[var(--primary)] font-medium transition-all group">
-                        <i class="fa-solid fa-users w-5 text-center transition-colors"></i>
-                        <span>Manage Users</span>
+                    <button type="button" class="nav-btn" id="nav-users"
+                            onclick="switchTab('users')">
+                        <i class="fa-solid fa-users"></i><span>Manage Users</span>
                     </button>
-                    <button onclick="switchTab('habits')" id="nav-habits" class="admin-nav-item relative overflow-hidden flex items-center gap-3 px-5 py-3.5 rounded-xl text-[var(--text-muted)] hover:text-white hover:bg-[var(--primary)] font-medium transition-all group">
-                        <i class="fa-solid fa-list-check w-5 text-center transition-colors"></i>
-                        <span>Manage Habits</span>
+                    <button type="button" class="nav-btn" id="nav-habits"
+                            onclick="switchTab('habits')">
+                        <i class="fa-solid fa-list-check"></i><span>Manage Habits</span>
                     </button>
-                    <button onclick="switchTab('feedback')" id="nav-feedback" class="admin-nav-item relative overflow-hidden flex items-center gap-3 px-5 py-3.5 rounded-xl text-[var(--text-muted)] hover:text-white hover:bg-[var(--primary)] font-medium transition-all group">
-                        <i class="fa-solid fa-comments w-5 text-center transition-colors"></i>
-                        <span>User Feedback</span>
+                    <button type="button" class="nav-btn" id="nav-feedback"
+                            onclick="switchTab('feedback')">
+                        <i class="fa-solid fa-comments"></i><span>User Feedback</span>
+                    </button>
+                    <div class="nav-divider"></div>
+                    <button type="button" class="nav-btn danger" onclick="handleAdminLogout()">
+                        <i class="fa-solid fa-right-from-bracket"></i><span>Logout</span>
                     </button>
                 </nav>
             </aside>
 
-            <!-- Main Content Area -->
-            <main class="flex-1 min-w-0">
-                
-                <!-- Dashboard Tab -->
-                <div id="tab-dashboard" class="tab-content animate-fade-in">
-                    <div class="flex items-center justify-between mb-8">
+            <!-- MAIN CONTENT -->
+            <main class="main-content">
+
+                <!-- ── TAB: OVERVIEW ── -->
+                <div id="tab-dashboard" class="tab-panel is-active">
+                    <div class="section-header">
                         <div>
-                            <h2 class="text-3xl font-bold tracking-tight">Dashboard Overview</h2>
-                            <p class="text-[var(--text-muted)] mt-1 text-sm">Real-time statistics from your database</p>
+                            <h1 class="section-title">Dashboard Overview</h1>
+                            <p class="section-subtitle">Real-time statistics from TiDB Cloud</p>
                         </div>
-                        <button onclick="fetchAllStats()" class="w-10 h-10 rounded-full glass-panel flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-all text-gray-500 hover:text-primary" title="Refresh Stats">
+                        <button type="button" class="btn btn-refresh" onclick="fetchAllStats()" title="Refresh">
                             <i class="fa-solid fa-rotate-right"></i>
                         </button>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-                        <!-- Stat Card 1 -->
-                        <div class="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
-                            <div class="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                            <div class="flex justify-between items-start mb-4">
-                                <div class="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-xl">
-                                    <i class="fa-solid fa-user-group"></i>
-                                </div>
+                    <div class="stats-grid">
+                        <!-- Users -->
+                        <div class="stat-card">
+                            <div class="blob-deco" style="background:rgba(16,185,129,.08);"></div>
+                            <div class="stat-icon" style="background:rgba(16,185,129,.1);color:#10B981;">
+                                <i class="fa-solid fa-user-group"></i>
                             </div>
-                            <div class="text-[var(--text-muted)] text-sm font-medium mb-1">Total Users</div>
-                            <div class="text-4xl font-bold tracking-tight" id="stat-total-users">-</div>
+                            <div class="stat-label">Total Users</div>
+                            <div class="stat-value" id="stat-total-users">-</div>
                         </div>
-                        
-                        <!-- Stat Card 2 -->
-                        <div class="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
-                            <div class="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                            <div class="flex justify-between items-start mb-4">
-                                <div class="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center text-xl">
-                                    <i class="fa-solid fa-layer-group"></i>
-                                </div>
+                        <!-- Habits -->
+                        <div class="stat-card">
+                            <div class="blob-deco" style="background:rgba(59,130,246,.08);"></div>
+                            <div class="stat-icon" style="background:rgba(59,130,246,.1);color:#3B82F6;">
+                                <i class="fa-solid fa-layer-group"></i>
                             </div>
-                            <div class="text-[var(--text-muted)] text-sm font-medium mb-1">Total Habits</div>
-                            <div class="text-4xl font-bold tracking-tight" id="stat-total-habits">-</div>
+                            <div class="stat-label">Total Habits</div>
+                            <div class="stat-value" id="stat-total-habits">-</div>
                         </div>
-
-                        <!-- Stat Card 3 -->
-                        <div class="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
-                            <div class="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                            <div class="flex justify-between items-start mb-4">
-                                <div class="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-500 flex items-center justify-center text-xl">
-                                    <i class="fa-solid fa-envelope-open-text"></i>
-                                </div>
+                        <!-- Feedback -->
+                        <div class="stat-card">
+                            <div class="blob-deco" style="background:rgba(168,85,247,.08);"></div>
+                            <div class="stat-icon" style="background:rgba(168,85,247,.1);color:#A855F7;">
+                                <i class="fa-solid fa-envelope-open-text"></i>
                             </div>
-                            <div class="text-[var(--text-muted)] text-sm font-medium mb-1">Feedback Items</div>
-                            <div class="text-4xl font-bold tracking-tight" id="stat-total-feedback">-</div>
+                            <div class="stat-label">Feedback Items</div>
+                            <div class="stat-value" id="stat-total-feedback">-</div>
                         </div>
-
-                        <!-- Stat Card 4 -->
-                        <div class="glass-panel p-6 rounded-3xl relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
-                            <div class="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                            <div class="flex justify-between items-start mb-4">
-                                <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-xl">
-                                    <i class="fa-solid fa-star"></i>
-                                </div>
+                        <!-- Rating -->
+                        <div class="stat-card">
+                            <div class="blob-deco" style="background:rgba(245,158,11,.08);"></div>
+                            <div class="stat-icon" style="background:rgba(245,158,11,.1);color:#F59E0B;">
+                                <i class="fa-solid fa-star"></i>
                             </div>
-                            <div class="text-[var(--text-muted)] text-sm font-medium mb-1">Avg Rating</div>
-                            <div class="text-4xl font-bold tracking-tight text-amber-500" id="stat-avg-rating">-</div>
+                            <div class="stat-label">Avg Rating</div>
+                            <div class="stat-value amber" id="stat-avg-rating">-</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Users Tab -->
-                <div id="tab-users" class="tab-content hidden animate-fade-in">
-                    <div class="flex justify-between items-end mb-6">
+                <!-- ── TAB: USERS ── -->
+                <div id="tab-users" class="tab-panel">
+                    <div class="section-header">
                         <div>
-                            <h2 class="text-2xl font-bold tracking-tight">Registered Users</h2>
-                            <p class="text-[var(--text-muted)] text-sm mt-1">Manage user accounts and profiles.</p>
+                            <h2 class="section-title">Registered Users</h2>
+                            <p class="section-subtitle">Ban, unban, or permanently delete accounts.</p>
                         </div>
-                        <button onclick="fetchUsers()" class="px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-bold rounded-xl hover:scale-105 active:scale-95 transition-all shadow-md"><i class="fa-solid fa-rotate-right mr-2 opacity-80"></i>Refresh</button>
+                        <button type="button" class="btn btn-dark" onclick="fetchUsers()">
+                            <i class="fa-solid fa-rotate-right"></i> Refresh
+                        </button>
                     </div>
-                    <div class="glass-panel rounded-3xl overflow-hidden shadow-lg shadow-gray-200/20 dark:shadow-none">
-                        <div class="overflow-x-auto custom-scrollbar">
-                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                    <div class="panel">
+                        <div class="tbl-wrap">
+                            <table>
                                 <thead>
-                                    <tr class="bg-gray-50/50 dark:bg-gray-800/50 border-b border-[var(--border-color)] text-xs uppercase tracking-wider text-[var(--text-muted)] font-bold">
-                                        <th class="p-5">User ID</th>
-                                        <th class="p-5">Profile Info</th>
-                                        <th class="p-5">Email Address</th>
-                                        <th class="p-5">Status</th>
-                                        <th class="p-5 text-right">Actions</th>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>User</th>
+                                        <th>Email</th>
+                                        <th>Status</th>
+                                        <th class="right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody id="users-table-body" class="text-sm divide-y divide-[var(--border-color)]">
-                                    <tr><td colspan="4" class="p-12 text-center text-[var(--text-muted)]"><i class="fa-solid fa-spinner fa-spin text-2xl mb-3 text-primary"></i><br>Loading user data...</td></tr>
+                                <tbody id="users-table-body">
+                                    <tr><td colspan="5" class="loading-td">
+                                        <i class="fa-solid fa-spinner fa-spin" style="color:#10B981;margin-right:.5rem;"></i>
+                                        Memuat data...
+                                    </td></tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
 
-                <!-- Habits Tab -->
-                <div id="tab-habits" class="tab-content hidden animate-fade-in">
-                    <div class="flex justify-between items-end mb-6">
+                <!-- ── TAB: HABITS ── -->
+                <div id="tab-habits" class="tab-panel">
+                    <div class="section-header">
                         <div>
-                            <h2 class="text-2xl font-bold tracking-tight">Global Habits</h2>
-                            <p class="text-[var(--text-muted)] text-sm mt-1">Monitor habits created by all users.</p>
+                            <h2 class="section-title">Global Habits</h2>
+                            <p class="section-subtitle">Monitor and delete habits across all users.</p>
                         </div>
-                        <button onclick="fetchHabits()" class="px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-bold rounded-xl hover:scale-105 active:scale-95 transition-all shadow-md"><i class="fa-solid fa-rotate-right mr-2 opacity-80"></i>Refresh</button>
+                        <button type="button" class="btn btn-dark" onclick="fetchHabits()">
+                            <i class="fa-solid fa-rotate-right"></i> Refresh
+                        </button>
                     </div>
-                    <div class="glass-panel rounded-3xl overflow-hidden shadow-lg shadow-gray-200/20 dark:shadow-none">
-                        <div class="overflow-x-auto custom-scrollbar">
-                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                    <div class="panel">
+                        <div class="tbl-wrap">
+                            <table>
                                 <thead>
-                                    <tr class="bg-gray-50/50 dark:bg-gray-800/50 border-b border-[var(--border-color)] text-xs uppercase tracking-wider text-[var(--text-muted)] font-bold">
-                                        <th class="p-5">Habit Details</th>
-                                        <th class="p-5">Category</th>
-                                        <th class="p-5">Owner</th>
-                                        <th class="p-5">Created On</th>
-                                        <th class="p-5 text-right">Actions</th>
+                                    <tr>
+                                        <th>Habit</th>
+                                        <th>Category</th>
+                                        <th>Owner</th>
+                                        <th>Created</th>
+                                        <th class="right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody id="habits-table-body" class="text-sm divide-y divide-[var(--border-color)]">
-                                    <tr><td colspan="5" class="p-12 text-center text-[var(--text-muted)]"><i class="fa-solid fa-spinner fa-spin text-2xl mb-3 text-primary"></i><br>Loading habits data...</td></tr>
+                                <tbody id="habits-table-body">
+                                    <tr><td colspan="5" class="loading-td">
+                                        <i class="fa-solid fa-spinner fa-spin" style="color:#10B981;margin-right:.5rem;"></i>
+                                        Memuat data...
+                                    </td></tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
 
-                <!-- Feedback Tab -->
-                <div id="tab-feedback" class="tab-content hidden animate-fade-in">
-                    <div class="flex justify-between items-end mb-6">
+                <!-- ── TAB: FEEDBACK ── -->
+                <div id="tab-feedback" class="tab-panel">
+                    <div class="section-header">
                         <div>
-                            <h2 class="text-2xl font-bold tracking-tight">User Experience</h2>
-                            <p class="text-[var(--text-muted)] text-sm mt-1">Review feedback and ratings from users.</p>
+                            <h2 class="section-title">User Feedback</h2>
+                            <p class="section-subtitle">Review ratings and comments submitted by users.</p>
                         </div>
-                        <button onclick="fetchFeedback()" class="px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-bold rounded-xl hover:scale-105 active:scale-95 transition-all shadow-md"><i class="fa-solid fa-rotate-right mr-2 opacity-80"></i>Refresh</button>
+                        <button type="button" class="btn btn-dark" onclick="fetchFeedback()">
+                            <i class="fa-solid fa-rotate-right"></i> Refresh
+                        </button>
                     </div>
-                    <div class="glass-panel rounded-3xl overflow-hidden shadow-lg shadow-gray-200/20 dark:shadow-none">
-                        <div class="overflow-x-auto custom-scrollbar">
-                            <table class="w-full text-left border-collapse">
+                    <div class="panel">
+                        <div class="tbl-wrap">
+                            <table>
                                 <thead>
-                                    <tr class="bg-gray-50/50 dark:bg-gray-800/50 border-b border-[var(--border-color)] text-xs uppercase tracking-wider text-[var(--text-muted)] font-bold">
-                                        <th class="p-5 w-32">Rating</th>
-                                        <th class="p-5">Feedback Comment</th>
-                                        <th class="p-5 w-32">Source</th>
-                                        <th class="p-5 w-40">Date Submitted</th>
-                                        <th class="p-5 text-right w-24">Actions</th>
+                                    <tr>
+                                        <th style="width:9rem;">Rating</th>
+                                        <th>Comment</th>
+                                        <th style="width:8rem;">Source</th>
+                                        <th style="width:9rem;">Date</th>
+                                        <th class="right" style="width:6rem;">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody id="feedback-table-body" class="text-sm divide-y divide-[var(--border-color)]">
-                                    <tr><td colspan="5" class="p-12 text-center text-[var(--text-muted)]"><i class="fa-solid fa-spinner fa-spin text-2xl mb-3 text-primary"></i><br>Loading feedback...</td></tr>
+                                <tbody id="feedback-table-body">
+                                    <tr><td colspan="5" class="loading-td">
+                                        <i class="fa-solid fa-spinner fa-spin" style="color:#10B981;margin-right:.5rem;"></i>
+                                        Memuat data...
+                                    </td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -286,8 +698,11 @@
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="../js/app.js"></script>
+    <!--
+        SCRIPTS:
+        - NO app.js (admin panel is self-contained)
+        - admin.js is the ONLY script
+    -->
     <script src="../js/admin.js"></script>
 </body>
 </html>
