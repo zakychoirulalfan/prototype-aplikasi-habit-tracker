@@ -63,18 +63,11 @@ db.getConnection((err, connection) => {
 //   - greetingTimeout: 10000 → Tunggu server SMTP merespons hingga 10 detik
 //   - connectionTimeout: 10000 → Batas waktu koneksi TCP awal
 const mailer = nodemailer.createTransport({
-    host    : process.env.SMTP_HOST || 'smtp.gmail.com',
-    port    : parseInt(process.env.SMTP_PORT) || 587,
-    secure  : process.env.SMTP_SECURE === 'true', // false untuk port 587 (STARTTLS)
+    service: 'gmail',
     auth: {
         user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS   // Harus 16-digit Google App Password, BUKAN password Gmail biasa
-    },
-    tls: {
-        rejectUnauthorized: false     // Izinkan handshake TLS meski sertifikat tidak terverifikasi penuh
-    },
-    greetingTimeout : 10000,          // ms — tunggu greeting SMTP server
-    connectionTimeout: 10000          // ms — batas waktu koneksi TCP awal
+        pass: process.env.SMTP_PASS   // Harus 16-digit Google App Password
+    }
 });
 
 mailer.verify((err, success) => {

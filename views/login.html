@@ -136,7 +136,7 @@
 
                     const email = document.getElementById('forgot-email-input').value.trim();
                     if (!email) {
-                        showToast('Masukkan alamat email kamu.', 'error');
+                        alert('Harap masukkan alamat email Anda.');
                         return;
                     }
 
@@ -155,20 +155,14 @@
 
                         if (response.ok && result.success) {
                             document.getElementById('forgot-modal').classList.add('hidden');
-                            showToast(
-                                result.message || 'Tautan reset password berhasil dikirim ke email kamu. Silakan cek inbox (dan folder Spam).',
-                                'success'
-                            );
+                            alert(result.message || 'Tautan reset password berhasil dikirim ke email kamu.');
                         } else {
                             // Tampilkan pesan error spesifik dari backend (misal SMTP gagal, dll)
-                            showToast(
-                                result.message || 'Gagal mengirim email. Silakan coba lagi.',
-                                'error'
-                            );
+                            alert(result.message || 'Gagal mengirim email. Silakan coba lagi.');
                         }
                     } catch (err) {
                         console.error("Fetch error:", err);
-                        showToast('Tidak dapat terhubung ke server. Pastikan backend menyala.', 'error');
+                        alert('Tidak dapat terhubung ke server. Pastikan backend menyala dan ada koneksi internet.');
                     } finally {
                         btn.disabled = false;
                         btn.classList.remove('opacity-70', 'cursor-not-allowed');
