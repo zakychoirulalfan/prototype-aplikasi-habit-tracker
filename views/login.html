@@ -134,9 +134,18 @@
                 forgotSubmitBtn.addEventListener('click', async (e) => {
                     e.preventDefault();
 
+                    const feedbackEl = document.getElementById('forgot-feedback');
+                    const showFeedback = (msg, isSuccess) => {
+                        feedbackEl.textContent = msg;
+                        feedbackEl.className = `text-sm font-semibold text-center mt-4 ${isSuccess ? 'text-green-600' : 'text-red-600'}`;
+                        feedbackEl.classList.remove('hidden');
+                    };
+
+                    feedbackEl.classList.add('hidden'); // Reset feedback
+
                     const email = document.getElementById('forgot-email-input').value.trim();
                     if (!email) {
-                        alert('Harap masukkan alamat email Anda.');
+                        showFeedback('Harap masukkan alamat email Anda.', false);
                         return;
                     }
 
@@ -154,15 +163,13 @@
                         const result = await response.json();
 
                         if (response.ok && result.success) {
-                            document.getElementById('forgot-modal').classList.add('hidden');
-                            alert(result.message || 'Tautan reset password berhasil dikirim ke email kamu.');
+                            showFeedback(result.message || 'Tautan reset berhasil dikirim ke email kamu.', true);
                         } else {
-                            // Tampilkan pesan error spesifik dari backend (misal SMTP gagal, dll)
-                            alert(result.message || 'Gagal mengirim email. Silakan coba lagi.');
+                            showFeedback(result.message || 'Gagal mengirim email. Silakan coba lagi.', false);
                         }
                     } catch (err) {
                         console.error("Fetch error:", err);
-                        alert('Tidak dapat terhubung ke server. Pastikan backend menyala dan ada koneksi internet.');
+                        showFeedback('Tidak dapat terhubung ke server. Pastikan internet menyala.', false);
                     } finally {
                         btn.disabled = false;
                         btn.classList.remove('opacity-70', 'cursor-not-allowed');
@@ -233,6 +240,7 @@
                 style="background-color: var(--primary);">
                 Kirim Link Reset
             </button>
+            <p id="forgot-feedback" class="text-sm font-semibold text-center mt-4 hidden"></p>
         </div>
     </div>
 
