@@ -167,11 +167,124 @@ function initApp() {
 
 // initHeroSlider removed — Swiper.js handles the hero slider in index.html
 
-// === Custom Toast Notification System (Disabled) ===
+// === Custom Toast Notification System ===
+// Sistem notifikasi Toast premium dengan dukungan 4 tipe:
+// 'success' (hijau), 'error' (merah), 'warning' (kuning), 'info' (biru)
+// Setiap toast muncul dengan animasi slide-in dan otomatis hilang setelah 4 detik.
 window.showToast = function (message, type = 'success') {
-    // UI Notification has been permanently disabled to prevent mobile layout lag.
-    // We keep the function signature intact so existing calls don't throw ReferenceErrors.
-    console.log(`Notification muted [${type}]:`, message);
+    // Injeksi style animasi ke <head> jika belum ada (hanya sekali)
+    if (!document.getElementById('toast-keyframes-style')) {
+        const style = document.createElement('style');
+        style.id = 'toast-keyframes-style';
+        style.textContent = `
+            @keyframes _toastSlideIn {
+                from { opacity: 0; transform: translateX(110%); }
+                to   { opacity: 1; transform: translateX(0); }
+            }
+            @keyframes _toastFadeOut {
+                from { opacity: 1; transform: translateX(0); }
+                to   { opacity: 0; transform: translateX(110%); }
+            }
+            ._toast-item {
+                display: flex;
+                align-items: flex-start;
+                gap: 10px;
+                min-width: 260px;
+                max-width: 340px;
+                padding: 13px 16px;
+                border-radius: 14px;
+                font-family: inherit;
+                font-size: 13.5px;
+                font-weight: 500;
+                line-height: 1.45;
+                box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+                cursor: pointer;
+                animation: _toastSlideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+                position: relative;
+                overflow: hidden;
+            }
+            ._toast-item::after {
+                content: '';
+                position: absolute;
+                bottom: 0; left: 0;
+                height: 3px;
+                background: rgba(255,255,255,0.35);
+                border-radius: 0 0 14px 14px;
+                animation: _toastProgress linear forwards;
+            }
+            ._toast-fadeout { animation: _toastFadeOut 0.3s ease forwards !important; }
+            @keyframes _toastProgress {
+                from { width: 100%; }
+                to   { width: 0%; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Buat atau temukan container toast (pojok kanan atas)
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.style.cssText = [
+            'position:fixed',
+            'top:20px',
+            'right:20px',
+            'z-index:99999',
+            'display:flex',
+            'flex-direction:column',
+            'gap:10px',
+            'pointer-events:none'
+        ].join(';');
+        document.body.appendChild(container);
+    }
+
+    // Palet warna & ikon untuk setiap tipe
+    const config = {
+        success : { bg: 'linear-gradient(135deg,#10B981,#059669)', icon: 'fa-circle-check',      border: '#34D399' },
+        error   : { bg: 'linear-gradient(135deg,#EF4444,#DC2626)', icon: 'fa-circle-xmark',      border: '#F87171' },
+        warning : { bg: 'linear-gradient(135deg,#F59E0B,#D97706)', icon: 'fa-triangle-exclamation', border: '#FCD34D' },
+        info    : { bg: 'linear-gradient(135deg,#3B82F6,#2563EB)', icon: 'fa-circle-info',       border: '#93C5FD' }
+    };
+    const { bg, icon, border } = config[type] || config.success;
+    const AUTO_DISMISS_MS = 4000;
+
+    // Buat elemen toast
+    const toast = document.createElement('div');
+    toast.className = '_toast-item';
+    toast.style.cssText = `background:${bg};color:#fff;border:1px solid ${border};pointer-events:auto;`;
+    toast.style.setProperty('--_dur', `${AUTO_DISMISS_MS}ms`);
+    toast.querySelector?.('::after')?.style.setProperty?.('animation-duration', `${AUTO_DISMISS_MS}ms`);
+    toast.innerHTML = `
+        <i class="fa-solid ${icon}" style="font-size:16px;margin-top:1px;flex-shrink:0;"></i>
+        <span style="flex:1;">${message}</span>
+        <button onclick="this.parentElement.remove()" style="background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:14px;padding:0;margin-top:1px;flex-shrink:0;" title="Tutup">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    `;
+
+    // Atur durasi progress bar via animasi CSS
+    const style = document.createElement('style');
+    const uid = `_tp_${Date.now()}_${Math.random().toString(36).slice(2,6)}`;
+    toast.id = uid;
+    style.textContent = `#${uid}::after { animation-duration: ${AUTO_DISMISS_MS}ms; }`;
+    document.head.appendChild(style);
+
+    container.appendChild(toast);
+    console.log(`[Toast ${type}]: ${message}`);
+
+    // Auto-dismiss dengan animasi fade-out
+    const dismiss = setTimeout(() => {
+        toast.classList.add('_toast-fadeout');
+        setTimeout(() => { toast.remove(); style.remove(); }, 350);
+    }, AUTO_DISMISS_MS);
+
+    // Klik untuk dismiss lebih cepat
+    toast.addEventListener('click', () => {
+        clearTimeout(dismiss);
+        toast.classList.add('_toast-fadeout');
+        setTimeout(() => { toast.remove(); style.remove(); }, 300);
+    });
 };
 
 // === Global Confirm Modal System ===

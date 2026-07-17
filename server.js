@@ -57,14 +57,24 @@ db.getConnection((err, connection) => {
 // ================================================================
 // 2. KONFIGURASI NODEMAILER (SMTP Kustom dari .env)
 // ================================================================
+// PENTING untuk Gmail + port 587 (STARTTLS):
+//   - secure: false  → Nodemailer mulai dengan plain lalu upgrade via STARTTLS
+//   - tls.rejectUnauthorized: false → Izinkan sertifikat self-signed / corporate proxy
+//   - greetingTimeout: 10000 → Tunggu server SMTP merespons hingga 10 detik
+//   - connectionTimeout: 10000 → Batas waktu koneksi TCP awal
 const mailer = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT) || 587,
-    secure: process.env.SMTP_SECURE === 'true',
+    host    : process.env.SMTP_HOST || 'smtp.gmail.com',
+    port    : parseInt(process.env.SMTP_PORT) || 587,
+    secure  : process.env.SMTP_SECURE === 'true', // false untuk port 587 (STARTTLS)
     auth: {
         user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-    }
+        pass: process.env.SMTP_PASS   // Harus 16-digit Google App Password, BUKAN password Gmail biasa
+    },
+    tls: {
+        rejectUnauthorized: false     // Izinkan handshake TLS meski sertifikat tidak terverifikasi penuh
+    },
+    greetingTimeout : 10000,          // ms — tunggu greeting SMTP server
+    connectionTimeout: 10000          // ms — batas waktu koneksi TCP awal
 });
 
 mailer.verify((err, success) => {
@@ -257,8 +267,18 @@ app.post('/auth/forgot-password', async (req, res) => {
         );
         console.log(`[DEBUG] 3. Token reset berhasil disimpan untuk user_id=${user.id}.`);
 
-        const frontendUrl = process.env.FRONTEND_BASE_URL || 'http://localhost:5500/views';
+        // Bangun URL reset yang robust:
+        // - Trim trailing slash agar tidak ada double-slash
+        // - Tambahkan /views jika belum ada (handle input dengan/tanpa /views)
+        // - Contoh: "https://app.vercel.app"      → "https://app.vercel.app/views/reset-password.html?token=..."
+        //           "https://app.vercel.app/views" → "https://app.vercel.app/views/reset-password.html?token=..."
+        let frontendUrl = (process.env.FRONTEND_BASE_URL || 'http://localhost:5500/views').replace(/\/+$/, '');
+        if (!frontendUrl.endsWith('/views')) {
+            frontendUrl = frontendUrl + '/views';
+        }
         const resetLink = `${frontendUrl}/reset-password.html?token=${token}`;
+        console.log(`[DEBUG] Reset link yang akan dikirim: ${resetLink}`);
+
 
         const htmlBody = `
 <!DOCTYPE html>
@@ -342,25 +362,43 @@ app.post('/auth/forgot-password', async (req, res) => {
 </html>`;
 
         console.log(`[DEBUG] 4. Mencoba mengirim email via Nodemailer...`);
-        await mailer.sendMail({
-            from: `"HabitFlow" <${process.env.SMTP_USER}>`,
-            to: safeEmail,
-            subject: '🔑 Reset Kata Sandi HabitFlow Kamu',
-            html: htmlBody
-        });
 
-        console.log(`[DEBUG] 5. ✅ Email reset password BERHASIL terkirim ke: "${safeEmail}"`);
+        // ── Kirim email dalam blok try-catch terpisah agar error SMTP
+        //    tertangkap secara eksplisit dan tidak tercampur dengan error DB ──
+        try {
+            const info = await mailer.sendMail({
+                from   : `"${process.env.MAIL_FROM_NAME || 'HabitFlow'}" <${process.env.MAIL_FROM_ADDRESS || process.env.SMTP_USER}>`,
+                to     : safeEmail,
+                subject: '🔑 Reset Kata Sandi HabitFlow Kamu',
+                html   : htmlBody
+            });
+            console.log(`[DEBUG] 5. ✅ Email reset password BERHASIL terkirim ke: "${safeEmail}" | messageId: ${info.messageId}`);
+        } catch (smtpErr) {
+            // Error SMTP (auth gagal, koneksi ditolak, quota habis, dll)
+            console.error('\n[DEBUG] ❌ SMTP sendMail GAGAL:');
+            console.error('   Kode  :', smtpErr.code);
+            console.error('   Pesan :', smtpErr.message);
+            console.error('   Tips  : Pastikan SMTP_PASS berisi 16-digit Google App Password (bukan password Gmail biasa)');
+            console.error('            Aktifkan 2FA di akun Google → https://myaccount.google.com/apppasswords');
+            return res.status(502).json({
+                success: false,
+                message: 'Gagal mengirim email reset. Silakan coba beberapa saat lagi.',
+                debug  : process.env.NODE_ENV !== 'production' ? smtpErr.message : undefined
+            });
+        }
+
         return res.status(200).json({
             success: true,
-            message: 'Jika email terdaftar, tautan reset akan segera dikirim.'
+            message: 'Tautan reset password berhasil dikirim ke email kamu. Silakan cek inbox (dan folder Spam).'
         });
 
     } catch (err) {
-        console.error('\n[DEBUG] ❌ ERROR PADA PROSES FORGOT PASSWORD:');
+        // Error database (query gagal, koneksi DB putus, dll)
+        console.error('\n[DEBUG] ❌ DATABASE ERROR PADA PROSES FORGOT PASSWORD:');
         console.error(err);
         return res.status(500).json({
             success: false,
-            message: 'Gagal mengirim email. Pastikan konfigurasi SMTP di .env sudah benar.'
+            message: 'Terjadi kesalahan pada server. Silakan coba beberapa saat lagi.'
         });
     }
 });

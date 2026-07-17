@@ -142,6 +142,7 @@
 
                     const btn = document.getElementById('forgot-submit');
                     btn.disabled = true;
+                    btn.classList.add('opacity-70', 'cursor-not-allowed');
                     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Mengirim...';
 
                     try {
@@ -154,15 +155,23 @@
 
                         if (response.ok && result.success) {
                             document.getElementById('forgot-modal').classList.add('hidden');
-                            showToast(result.message || 'Jika email terdaftar, link reset telah dikirim.', 'success');
+                            showToast(
+                                result.message || 'Tautan reset password berhasil dikirim ke email kamu. Silakan cek inbox (dan folder Spam).',
+                                'success'
+                            );
                         } else {
-                            showToast(result.message || 'Terjadi kesalahan saat mengirim link.', 'error');
+                            // Tampilkan pesan error spesifik dari backend (misal SMTP gagal, dll)
+                            showToast(
+                                result.message || 'Gagal mengirim email. Silakan coba lagi.',
+                                'error'
+                            );
                         }
                     } catch (err) {
                         console.error("Fetch error:", err);
                         showToast('Tidak dapat terhubung ke server. Pastikan backend menyala.', 'error');
                     } finally {
                         btn.disabled = false;
+                        btn.classList.remove('opacity-70', 'cursor-not-allowed');
                         btn.innerHTML = 'Kirim Link Reset';
                     }
                 });
