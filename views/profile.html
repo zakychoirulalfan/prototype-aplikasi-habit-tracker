@@ -536,10 +536,10 @@
                     localStorage.setItem('currentUser', JSON.stringify(user));
                 }
 
-                showToast(`Nama berhasil diperbarui: ${newName}!`);
+                alert(`Nama berhasil diperbarui: ${newName}!`);
             } catch (err) {
                 console.error('Update username error:', err);
-                showToast('Gagal memperbarui nama. Coba lagi.', 'error');
+                alert('Gagal memperbarui nama. Coba lagi.');
             }
         }
 
@@ -560,9 +560,9 @@
                     body   : JSON.stringify({ email })
                 });
                 const result = await response.json();
-                showToast(result.message || 'Link reset terkirim! Cek email kamu.');
+                alert(result.message || 'Link reset terkirim! Cek email kamu.');
             } catch (err) {
-                showToast('Gagal mengirim link reset. Cek koneksi ke server.', 'error');
+                alert('Gagal mengirim link reset. Cek koneksi ke server.');
             }
         }
 
@@ -572,7 +572,7 @@
 
         async function uploadAvatar(file) {
             if (!_currentUser) {
-                showToast('User tidak ditemukan. Silakan login ulang.', 'error');
+                alert('User tidak ditemukan. Silakan login ulang.');
                 return;
             }
 
