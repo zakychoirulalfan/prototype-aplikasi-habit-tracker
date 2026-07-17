@@ -172,34 +172,54 @@ function initApp() {
 // 'success' (hijau), 'error' (merah), 'warning' (kuning), 'info' (biru)
 // Setiap toast muncul dengan animasi slide-in dan otomatis hilang setelah 4 detik.
 window.showToast = function (message, type = 'success') {
-    // Injeksi style animasi ke <head> jika belum ada (hanya sekali)
-    if (!document.getElementById('toast-keyframes-style')) {
+    // 1. Injeksi style animasi ke <head> jika belum ada
+    if (!document.getElementById('toast-premium-style')) {
         const style = document.createElement('style');
-        style.id = 'toast-keyframes-style';
+        style.id = 'toast-premium-style';
         style.textContent = `
-            @keyframes _toastSlideIn {
-                from { opacity: 0; transform: translateX(110%); }
-                to   { opacity: 1; transform: translateX(0); }
+            @keyframes _toastSlideDown {
+                from { opacity: 0; transform: translate(-50%, -20px) scale(0.95); }
+                to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
             }
             @keyframes _toastFadeOut {
-                from { opacity: 1; transform: translateX(0); }
-                to   { opacity: 0; transform: translateX(110%); }
+                from { opacity: 1; transform: translate(-50%, 0) scale(1); }
+                to   { opacity: 0; transform: translate(-50%, -10px) scale(0.95); }
+            }
+            @keyframes _toastProgress {
+                from { width: 100%; }
+                to   { width: 0%; }
+            }
+            ._toast-container {
+                position: fixed;
+                top: 24px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 999999;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 12px;
+                pointer-events: none;
+                width: 90%;
+                max-width: 400px;
             }
             ._toast-item {
                 display: flex;
-                align-items: flex-start;
-                gap: 10px;
-                min-width: 260px;
-                max-width: 340px;
-                padding: 13px 16px;
-                border-radius: 14px;
+                align-items: center;
+                gap: 12px;
+                width: 100%;
+                padding: 14px 18px;
+                border-radius: 16px;
                 font-family: inherit;
-                font-size: 13.5px;
-                font-weight: 500;
-                line-height: 1.45;
-                box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+                font-size: 14px;
+                font-weight: 600;
+                line-height: 1.4;
+                box-shadow: 0 10px 40px -10px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.1);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
                 cursor: pointer;
-                animation: _toastSlideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+                animation: _toastSlideDown 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+                pointer-events: auto;
                 position: relative;
                 overflow: hidden;
             }
@@ -209,81 +229,74 @@ window.showToast = function (message, type = 'success') {
                 bottom: 0; left: 0;
                 height: 3px;
                 background: rgba(255,255,255,0.35);
-                border-radius: 0 0 14px 14px;
+                border-radius: 0 0 16px 16px;
                 animation: _toastProgress linear forwards;
             }
-            ._toast-fadeout { animation: _toastFadeOut 0.3s ease forwards !important; }
-            @keyframes _toastProgress {
-                from { width: 100%; }
-                to   { width: 0%; }
+            ._toast-fadeout { animation: _toastFadeOut 0.3s cubic-bezier(0.4, 0, 1, 1) forwards !important; }
+            ._toast-icon { font-size: 18px; flex-shrink: 0; }
+            ._toast-msg { flex: 1; word-wrap: break-word; }
+            ._toast-close {
+                background: none; border: none; padding: 4px; margin: -4px;
+                cursor: pointer; opacity: 0.6; transition: opacity 0.2s;
+                display: flex; align-items: center; justify-content: center;
             }
+            ._toast-close:hover { opacity: 1; }
         `;
         document.head.appendChild(style);
     }
 
-    // Buat atau temukan container toast (pojok kanan atas)
+    // 2. Buat atau temukan container toast
     let container = document.getElementById('toast-container');
     if (!container) {
         container = document.createElement('div');
         container.id = 'toast-container';
-        container.style.cssText = [
-            'position:fixed',
-            'top:20px',
-            'right:20px',
-            'z-index:99999',
-            'display:flex',
-            'flex-direction:column',
-            'gap:10px',
-            'pointer-events:none'
-        ].join(';');
+        container.className = '_toast-container';
         document.body.appendChild(container);
     }
 
-    // Palet warna & ikon untuk setiap tipe
+    // 3. Palet warna premium (Glassmorphism look)
     const config = {
-        success : { bg: 'linear-gradient(135deg,#10B981,#059669)', icon: 'fa-circle-check',      border: '#34D399' },
-        error   : { bg: 'linear-gradient(135deg,#EF4444,#DC2626)', icon: 'fa-circle-xmark',      border: '#F87171' },
-        warning : { bg: 'linear-gradient(135deg,#F59E0B,#D97706)', icon: 'fa-triangle-exclamation', border: '#FCD34D' },
-        info    : { bg: 'linear-gradient(135deg,#3B82F6,#2563EB)', icon: 'fa-circle-info',       border: '#93C5FD' }
+        success : { bg: 'rgba(16, 185, 129, 0.9)', text: '#ffffff', icon: 'fa-circle-check', border: 'rgba(255,255,255,0.2)' },
+        error   : { bg: 'rgba(239, 68, 68, 0.9)',  text: '#ffffff', icon: 'fa-circle-exclamation', border: 'rgba(255,255,255,0.2)' },
+        warning : { bg: 'rgba(245, 158, 11, 0.9)', text: '#ffffff', icon: 'fa-triangle-exclamation', border: 'rgba(255,255,255,0.2)' },
+        info    : { bg: 'rgba(59, 130, 246, 0.9)', text: '#ffffff', icon: 'fa-circle-info', border: 'rgba(255,255,255,0.2)' }
     };
-    const { bg, icon, border } = config[type] || config.success;
-    const AUTO_DISMISS_MS = 4000;
+    const { bg, text, icon, border } = config[type] || config.success;
+    const AUTO_DISMISS_MS = 3500;
 
-    // Buat elemen toast
+    // 4. Buat elemen toast
     const toast = document.createElement('div');
     toast.className = '_toast-item';
-    toast.style.cssText = `background:${bg};color:#fff;border:1px solid ${border};pointer-events:auto;`;
-    toast.style.setProperty('--_dur', `${AUTO_DISMISS_MS}ms`);
-    toast.querySelector?.('::after')?.style.setProperty?.('animation-duration', `${AUTO_DISMISS_MS}ms`);
+    toast.style.cssText = `background: ${bg}; color: ${text}; border: 1px solid ${border};`;
+    
     toast.innerHTML = `
-        <i class="fa-solid ${icon}" style="font-size:16px;margin-top:1px;flex-shrink:0;"></i>
-        <span style="flex:1;">${message}</span>
-        <button onclick="this.parentElement.remove()" style="background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:14px;padding:0;margin-top:1px;flex-shrink:0;" title="Tutup">
-            <i class="fa-solid fa-xmark"></i>
+        <i class="fa-solid ${icon} _toast-icon"></i>
+        <span class="_toast-msg">${message}</span>
+        <button class="_toast-close" title="Tutup">
+            <i class="fa-solid fa-xmark" style="color: ${text};"></i>
         </button>
     `;
 
-    // Atur durasi progress bar via animasi CSS
-    const style = document.createElement('style');
+    // 5. Atur durasi progress bar via style dinamis
     const uid = `_tp_${Date.now()}_${Math.random().toString(36).slice(2,6)}`;
     toast.id = uid;
+    const style = document.createElement('style');
     style.textContent = `#${uid}::after { animation-duration: ${AUTO_DISMISS_MS}ms; }`;
     document.head.appendChild(style);
 
     container.appendChild(toast);
-    console.log(`[Toast ${type}]: ${message}`);
 
-    // Auto-dismiss dengan animasi fade-out
-    const dismiss = setTimeout(() => {
-        toast.classList.add('_toast-fadeout');
-        setTimeout(() => { toast.remove(); style.remove(); }, 350);
-    }, AUTO_DISMISS_MS);
-
-    // Klik untuk dismiss lebih cepat
-    toast.addEventListener('click', () => {
-        clearTimeout(dismiss);
+    // 6. Logic Auto-dismiss & Click-to-dismiss
+    const removeToast = () => {
         toast.classList.add('_toast-fadeout');
         setTimeout(() => { toast.remove(); style.remove(); }, 300);
+    };
+
+    const dismissTimeout = setTimeout(removeToast, AUTO_DISMISS_MS);
+    
+    toast.addEventListener('click', () => {
+        clearTimeout(dismissTimeout);
+        removeToast();
     });
 };
 
